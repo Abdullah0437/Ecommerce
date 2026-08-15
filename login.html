@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <meta name="description" content="">
+    <link rel="icon" type="image/x-icon" href="./assets/images/favicon.ico">
+    <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./assets/font/bootstrap-icons-1.11.3/font/bootstrap-icons.min.css">
+    <!-- font-awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link rel="stylesheet" href="./assets/plugin/nice-select/nice-select.css">
+    <link rel="stylesheet" href="./assets/plugin/OwlCarousel2-2.3.4/dist/assets/owl.carousel.min.css">
+    <link rel="stylesheet" href="./assets/plugin/OwlCarousel2-2.3.4/dist/assets/owl.theme.default.min.css">
+    <link rel="stylesheet" href="./assets/plugin/nouislider/nouislider.min.css">
+    <link rel="stylesheet" href="./assets/plugin/slick/slick.css">
+    <link rel="stylesheet" href="./assets/css/style.css">
+      <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;display=swap"  rel="stylesheet">
+</head>
+
+<body>
+    <!-- Header Section Start -->
+    <header>
+        <!-- Navbar -->
+            <div class="container py-lg-2 mt-0 mt-lg-2">
+                <div class="row">
+                        <div class="col-12 col-sm-12 col-md-12 col-lg-2  mb-2 mb-lg-3 pt-3 pt-lg-2">
+                                <div class="row">
+                                    <div class="col-12 d-flex justify-content-center mb-3 mb-lg-0">
+                                        <!-- Logo -->
+                                        <a class="navbar-brand flex-shrink-0 py-0 py-lg-0" href="index.html">
+                                            <img src="./assets/images/logo.png" class="logo main-logo" alt="eCommerce HTML Template">
+                                        </a>
+                                        <!-- Logo -->
+                                        </div>
+                                    
+                                        <div class="col-12">
+                                        <div class="list-inline  d-lg-none d-flex justify-content-between">
+
+                                            <div class="list-inline-item d-inline-block d-lg-none">
+                                                <button class="navbar-toggler border-0 collapsed" type="button" data-bs-toggle="offcanvas"
+                                                    data-bs-target="#navbar-default" aria-controls="navbar-default"
+                                                    aria-label="Toggle navigation">
+                                                    <i class="bi bi-text-indent-left"></i>
+                                                </button>
+                                            </div>
+
+                                            <div>
+                                                <div class="list-inline-item me-4">
+                                                    <a href="login.html" class="text-muted d-flex flex-column justity-content-center align-items-center">
+                                                        <i class="bi bi-person"></i>
+                                                        <span class="d-none d-sm-none d-md-none d-lg-block" >Account</span>
+                                                    </a>
+                                                </div>
+                                                <div class="list-inline-item me-4">
+                                                    <a href="wishlist.html" class="text-muted  d-flex flex-column justity-content-center align-items-center">
+                                                        <i class="bi bi-heart"></i>
+                                                        <span class="d-none d-sm-none d-md-none d-lg-block" >Wishlist</span>
+                                                    </a>
+                                                </div>
+                                                <div class="list-inline-item me-4">
+                                                    <a href="cart.html" class="text-muted  d-flex flex-column justity-content-center align-items-center">
+                                                        <div class="position-relative">
+                                                            <i class="bi bi-cart"></i>
+                                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                                                                5
+                                                            </span>
+                                                        </div> 
+                                                        <span class="d-none d-sm-none d-md-none d-lg-block" >Your cart</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        </div>
+                                </div>
+                        </div>
+                        <div class="col-12 col-sm-12 col-md-12 col-lg-7">
+                            <nav class="navbar navbar-expand-lg navbar-light navbar-default py-0 pb-lg-2" aria-label="Offcanvas navbar large">
+                            <div class="container">
+                                <div class="offcanvas offcanvas-start pt-2" tabindex="-1" id="navbar-default"
+                                    aria-labelledby="navbar-defaultLabel">
+                                    <div class="offcanvas-header pb-1">
+                                        <a href="index.html"><img src="./assets/images/logo.png"
+                                                alt="eCommerce HTML Template"></a>
+                                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
+                                            aria-label="Close"></button>
+                                    </div>
+                                    <div class="offcanvas-body">
+                                        <div class="d-block d-lg-none mb-4">
+                                            <form action="#">
+                                                <div class="input-group">
+                                                    <input class="form-control" type="search" placeholder="Search for products">
+                                                    <span class="input-group-append">
+                                                        <button
+                                                            class="btn bg-white border border-start-0 ms-n10 rounded-0 rounded-end"
+                                                            type="button">
+                                                            <span class="bi bi-search"></span>
+                                                        </button>
+                                                    </span>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="mx-auto">
+                                            <ul class="navbar-nav align-items-center ms-lg-5">
+                                                <li class="nav-item dropdown w-100 w-lg-auto">
+                                                    <a class="nav-link" href="index.html">Home</a>
+                                                </li>
+                                                <li class="nav-item dropdown w-100 w-lg-auto">
+                                                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                                                        data-bs-toggle="dropdown" aria-expanded="false">Shop</a>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="shop.html">Shop Page - Filter</a></li>
+                                                        <li><a class="dropdown-item" href="shop-single.html">Shop Single</a></li>
+                                                        <li><a class="dropdown-item" href="wishlist.html">Shop Wishlist</a></li>
+                                                        <li><a class="dropdown-item" href="cart.html">Shop Cart</a></li>
+                                                        <li><a class="dropdown-item" href="checkout.html">Shop Checkout</a></li>
+                                                    </ul>
+                                                </li>
+                                                <li class="nav-item dropdown w-100 w-lg-auto dropdown-fullwidth">
+                                                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                                                        data-bs-toggle="dropdown" aria-expanded="false">Categories</a>
+                                                    <div class="dropdown-menu pb-0">
+                                                        <div class="row p-2 p-lg-4">
+                                                            <div class="col-lg-4 col-12 mb-4 mb-lg-0">
+                                                                <h6 class="text-primary ps-3">Accessories</h6>
+                                                                <a class="dropdown-item" href="#">Table</a>
+                                                                <a class="dropdown-item" href="#">Chair</a>
+                                                            </div>
+                                                            <div class="col-lg-4 col-12 mb-4 mb-lg-0">
+                                                                <h6 class="text-primary ps-3">Accessories</h6>
+                                                                <a class="dropdown-item" href="#">Wardrobe</a>
+                                                                <a class="dropdown-item" href="#">Cupboard</a>
+                                                            </div>
+                                                            <div class="col-lg-4 col-12 mb-4 mb-lg-0">
+                                                                <h6 class="text-primary ps-3">Accessories</h6>
+                                                                <a class="dropdown-item" href="#">Sofa</a>
+                                                                <a class="dropdown-item" href="#">Bed</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                                <li class="nav-item dropdown w-100 w-lg-auto">
+                                                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                                                        data-bs-toggle="dropdown" aria-expanded="false">Pages</a>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="blog.html">Blog</a></li>
+                                                        <li><a class="dropdown-item" href="blog-single.html">Blog Single</a>
+                                                        </li>
+                                                        <li><a class="dropdown-item" href="about.html">About us</a></li>
+                                                        <li><a class="dropdown-item" href="contact.html">Contact</a></li>
+                                                    </ul>
+                                                </li>
+                                                <li class="nav-item dropdown w-100 w-lg-auto">
+                                                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                                                        data-bs-toggle="dropdown" aria-expanded="false">Account</a>
+                                                        <ul class="dropdown-menu">
+                                                            <li><a class="dropdown-item" href="login.html">Sign in</a></li>
+                                                            <li><a class="dropdown-item" href="signup.html">Signup</a></li>
+                                                            <li><a class="dropdown-item" href="forgot-password.html">Forgot Password</a></li>
+                                                        </ul>
+                                                </li>
+                                                
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </nav>
+                        </div>
+                        <div class="col-12 col-sm-12 col-md-12 col-lg-3 d-none d-lg-block">
+                                <!-- Navbar Actions -->
+                                <div class="offcanvas offcanvas-top" tabindex="-1" id="offcanvasTop" aria-labelledby="offcanvasTopLabel">
+                                    <div class="offcanvas-header">
+                                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                                    </div>
+                                    <div class="offcanvas-body">
+                                        <div class="mt-50">
+                                            <form action="#">
+                                                <div class="input-group">
+                                                    <input class="form-control py-3" type="search" placeholder="Search for products">
+                                                    <span class="input-group-append">
+                                                        <button
+                                                            class="btn bg-white border border-start-0 ms-n10 py-3 rounded-0 rounded-end"
+                                                            type="button">
+                                                            <span class="bi bi-search"></span>
+                                                        </button>
+                                                    </span>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    </div>
+
+                                <div class="list-inline  d-flex pt-2">
+                                    <div class="list-inline-item me-4">
+                                        <a href="login.html"  data-bs-toggle="offcanvas" data-bs-target="#offcanvasTop" aria-controls="offcanvasTop" class="text-muted d-flex flex-column justity-content-center align-items-center">
+                                            <i class="bi bi-search"></i>
+                                            <span class="d-none d-sm-none d-md-none d-lg-block" >Search</span>
+                                        </a>
+                                    </div>
+                                    <div class="list-inline-item me-4">
+                                        <a href="login.html" class="text-muted d-flex flex-column justity-content-center align-items-center">
+                                            <i class="bi bi-person"></i>
+                                            <span class="d-none d-sm-none d-md-none d-lg-block" >Account</span>
+                                        </a>
+                                    </div>
+                                    <div class="list-inline-item me-4">
+                                        <a href="wishlist.html" class="text-muted  d-flex flex-column justity-content-center align-items-center">
+                                            <i class="bi bi-heart"></i>
+                                            <span class="d-none d-sm-none d-md-none d-lg-block" >Wishlist</span>
+                                        </a>
+                                    </div>
+                                    <div class="list-inline-item me-4">
+                                        <a href="cart.html" class="text-muted  d-flex flex-column justity-content-center align-items-center">
+                                            <i class="bi bi-cart"></i>
+                                            <span class="d-none d-sm-none d-md-none d-lg-block" >Your cart</span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <!-- Navbar Actions -->
+                        </div>
+                </div>
+            </div>
+        <!-- Navbar -->
+    </header>
+    <!-- Header Section End -->
+
+    <main>
+        <div class="breadcrumb-main">
+            <div class="container">
+                <div class="breadcrumb-container">
+                    <h2 class="page-title">Login</h2>
+                    <ul class="breadcrumb">
+                      <li class="breadcrumb-item">
+                        <a href="#">Home</a>
+                      </li>
+                      <li class="breadcrumb-item">
+                        <a href="#">Account</a>
+                      </li>
+                    </ul>
+                  </div>
+            </div>
+        </div>
+        <!-- row -->
+          <div class="container">
+            <div class="row justify-content-center align-items-center px-3 mt-50">
+                <!-- col -->
+                <div class="col-12 col-md-7 col-lg-5">
+                     <div class="card">
+                          <div class="card-body p-4">
+                            <div class="mb-5">
+                                <h1 class="mb-1 h2 fw-bold">Registered Customers</h1>
+                                <p class="mt-3">Sign in with your email  to access your account.</p>
+                            </div>
+                            <form>
+                                <div class="row g-3">
+                                    <!-- row -->
+                                    <div class="col-12">
+                                        <!-- input -->
+                                        <label for="formSigninEmail" class="form-label">Email <span
+                                                class="text-danger">*</span></label>
+                                        <input type="email" class="form-control rounded-0 py-2" id="formSigninEmail"
+                                            placeholder="Enter Email" required="">
+                                    </div>
+                                    <div class="col-12">
+                                        <!-- input -->
+                                        <div class="password-field position-relative">
+                                            <label for="formSigninPassword" class="form-label">Password <span
+                                                    class="text-danger">*</span></label>
+                                            <div class="password-field position-relative">
+                                                <input type="password" class="form-control rounded-0 py-2" id="formSigninPassword"
+                                                    placeholder="*****" required="">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            Forgot Password? <a href="forgot-password.html" class="text-primary">Reset It</a>
+                                        </div>
+                                    </div>
+                                    <!-- btn -->
+                                    <div class="col-12 d-grid"><button type="submit" class="btn btn-primary">Sign
+                                            In</button></div>
+                                    <!-- link -->
+                                    <div class="col-12 d-grid">
+                                        <div>
+                                            New Customer? <a href="signup.html" class="text-primary">Sign Up</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                          </div>
+                     </div>
+                </div>
+            </div>
+          </div>
+    </main>
+    <!-- footer Section -->
+    <footer class="mt-50">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4 mb-md-0">
+                    <div class="row">
+                        <div class="col-12 col-md-6 col-lg-12">
+                            <div class="footer_logo">
+                                <img loading="lazy" src="./assets/images/logo.png" class="logo" alt="easy shop">
+                            </div>
+                            <div class="mt-4">
+                                <p>Widgetify Inc, 456 Gadget Avenue, <br> Techtown, TX 67890, <br> United States of
+                                    America</p>
+                                <h3 class="h5 fw-bold">(987) 654-3210</h3>
+                                <p>info@example.com</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-3 mb-md-0">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="footer_menu">
+                                <h4 class="footer_title">My Account</h4>
+                                <ul class="m-0 p-0 list-unstyled">
+                                    <li><a href="#">Orders</a></li>
+                                    <li><a href="#">Wishlist</a></li>
+                                    <li><a href="#">Track Order</a></li>
+                                    <li><a href="#">Manage Account</a></li>
+                                </ul>
+
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="footer_menu">
+                                <h4 class="footer_title">Information</h4>
+                                <ul class="m-0 p-0 list-unstyled">
+                                    <li><a href="#">About Us</a></li>
+                                    <li><a href="#">Return Policy</a></li>
+                                    <li><a href="#">Privacy Policy</a></li>
+                                    <li><a href="#">FAQ</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="footer_menu">
+                                <h4 class="footer_title">Useful Links</h4>
+                                <ul class="m-0 p-0 list-unstyled">
+                                    <li><a href="#">Orders</a></li>
+                                    <li><a href="#">Wishlist</a></li>
+                                    <li><a href="#">Track Order</a></li>
+                                    <li><a href="#">Manage Account</a></li>
+                                </ul>
+
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="footer_menu">
+                                <h4 class="footer_title">Categories</h4>
+                                <ul class="m-0 p-0 list-unstyled">
+                                    <li><a href="#">About Us</a></li>
+                                    <li><a href="#">Return Policy</a></li>
+                                    <li><a href="#">Privacy Policy</a></li>
+                                    <li><a href="#">FAQ</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center py-3 mt-4 text-white px-3 copyright">
+            <span>Copyright © 2024. All Rights Reserved. Themes By TemplateRise</span>
+        </div>
+    </footer>
+    <script src="./assets/js/jquery-3.6.0.min.js"></script>
+    <script src="./assets/js/bootstrap.bundle.min.js"></script>
+    <script src="./assets/plugin/nice-select/jquery.nice-select.min.js"></script>
+    <script src="./assets/plugin/OwlCarousel2-2.3.4/dist/owl.carousel.min.js"></script>
+    <script src="./assets/plugin/nouislider/nouislider.min.js"></script>
+    <script src="./assets/plugin/slick/slick.min.js"></script>
+    <script src="./assets/js/main.js"></script>
+</body>
+</html>
