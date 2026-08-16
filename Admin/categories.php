@@ -14,6 +14,7 @@ if (!$connect) {
 }
 
 // Admin authentication
+
 if (!isset($_SESSION['admin_id'])) {
     header("Location: login.php");
     exit;
@@ -23,9 +24,7 @@ $message = "";
 $error = "";
 
 
-// ========================================
 // ADD CATEGORY
-// ========================================
 
 if (isset($_POST['add_category'])) {
 
@@ -36,7 +35,6 @@ if (isset($_POST['add_category'])) {
     if ($name === "") {
 
         $error = "Category name is required.";
-
     } else {
 
         $check = mysqli_prepare($connect, "SELECT id FROM categories WHERE name = ?");
@@ -48,7 +46,6 @@ if (isset($_POST['add_category'])) {
         if (mysqli_stmt_num_rows($check) > 0) {
 
             $error = "Category name already exists.";
-
         } else {
 
             $stmt = mysqli_prepare(
@@ -82,9 +79,8 @@ if (isset($_POST['add_category'])) {
 }
 
 
-// ========================================
+
 // UPDATE CATEGORY
-// ========================================
 
 if (isset($_POST['update_category'])) {
 
@@ -96,9 +92,7 @@ if (isset($_POST['update_category'])) {
     if ($name === "") {
 
         $error = "Category name is required.";
-
     } else {
-        // Check duplicate name except current category
         $check = mysqli_prepare(
             $connect,
             "SELECT id
@@ -120,7 +114,6 @@ if (isset($_POST['update_category'])) {
         if (mysqli_stmt_num_rows($check) > 0) {
 
             $error = "Another category with this name already exists.";
-            
         } else {
 
             $stmt = mysqli_prepare(
@@ -157,18 +150,11 @@ if (isset($_POST['update_category'])) {
 }
 
 
-// ========================================
 // DELETE / DEACTIVATE CATEGORY
-// ========================================
 
 if (isset($_GET['delete'])) {
 
     $id = (int) $_GET['delete'];
-
-    /*
-       Instead of permanently deleting the category,
-       we make it Inactive.
-    */
 
     $stmt = mysqli_prepare(
         $connect,
@@ -182,7 +168,6 @@ if (isset($_GET['delete'])) {
     if (mysqli_stmt_execute($stmt)) {
 
         $message = "Category deactivated successfully.";
-
     } else {
 
         $error = "Failed to deactivate category.";
@@ -192,9 +177,7 @@ if (isset($_GET['delete'])) {
 }
 
 
-// ========================================
 // ACTIVATE CATEGORY
-// ========================================
 
 if (isset($_GET['activate'])) {
 
@@ -212,7 +195,6 @@ if (isset($_GET['activate'])) {
     if (mysqli_stmt_execute($stmt)) {
 
         $message = "Category activated successfully.";
-
     } else {
 
         $error = "Failed to activate category.";
@@ -222,9 +204,7 @@ if (isset($_GET['activate'])) {
 }
 
 
-// ========================================
 // GET CATEGORY FOR EDIT
-// ========================================
 
 $editCategory = null;
 
@@ -250,15 +230,13 @@ if (isset($_GET['edit'])) {
 }
 
 
-// ========================================
 // FETCH ALL CATEGORIES
-// ========================================
 
 $result = mysqli_query(
     $connect,
     "SELECT *
      FROM categories
-     ORDER BY id DESC"
+     ORDER BY id ASC"
 );
 
 ?>
@@ -268,11 +246,9 @@ $result = mysqli_query(
 
 <head>
     <title>Category Management</title>
-    <!-- Required meta tags -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Bootstrap CSS v5.3.8 -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
         rel="stylesheet"
@@ -320,9 +296,7 @@ $result = mysqli_query(
         <?php endif; ?>
 
 
-        <!-- ================================= -->
         <!-- ADD / EDIT CATEGORY FORM -->
-        <!-- ================================= -->
 
         <div class="card mb-4">
 
@@ -384,9 +358,7 @@ $result = mysqli_query(
                         <textarea
                             name="description"
                             class="form-control"
-                            rows="3">
-                            <?= $editCategory ? htmlspecialchars($editCategory['description']) : '' ?>
-                        </textarea>
+                            rows="3"><?= $editCategory ? htmlspecialchars($editCategory['description']) : '' ?></textarea>
 
                     </div>
 
@@ -450,9 +422,7 @@ $result = mysqli_query(
         </div>
 
 
-        <!-- ================================= -->
         <!-- CATEGORY LIST -->
-        <!-- ================================= -->
 
         <div class="card">
 
@@ -472,23 +442,14 @@ $result = mysqli_query(
                     <table class="table table-bordered table-hover">
 
                         <thead class="table-dark">
-
                             <tr>
-
-                                <th>ID</th>
-
-                                <th>Category Name</th>
-
-                                <th>Description</th>
-
-                                <th>Status</th>
-
-                                <th>Created Date</th>
-
-                                <th>Actions</th>
-
+                                <th rowspan="2">ID</th>
+                                <th rowspan="2">Category Name</th>
+                                <th rowspan="2">Description</th>
+                                <th rowspan="2">Status</th>
+                                <th rowspan="2">Created Date</th>
+                                <th colspan="2" class="text-center">Actions</th>
                             </tr>
-
                         </thead>
 
 
@@ -545,35 +506,28 @@ $result = mysqli_query(
                                         </td>
 
 
+                                        <!-- EDIT -->
                                         <td>
-
-                                            <!-- EDIT -->
-
                                             <a
                                                 href="?edit=<?= $category['id'] ?>"
                                                 class="btn btn-sm btn-primary">
                                                 Edit
                                             </a>
+                                        </td>
 
-
-                                            <?php if (
-                                                $category['status'] == 'Active'
-                                            ): ?>
-
-                                                <!-- DEACTIVATE -->
+                                        <!-- ACTIVATE / DEACTIVATE -->
+                                        <td>
+                                            <?php if ($category['status'] == 'Active'): ?>
 
                                                 <a
                                                     href="?delete=<?= $category['id'] ?>"
                                                     class="btn btn-sm btn-danger"
                                                     onclick="return confirm(
-                                                'Are you sure you want to deactivate this category?'
-                                            )">
+                'Are you sure you want to deactivate this category?')">
                                                     Deactivate
                                                 </a>
 
                                             <?php else: ?>
-
-                                                <!-- ACTIVATE -->
 
                                                 <a
                                                     href="?activate=<?= $category['id'] ?>"
@@ -582,7 +536,6 @@ $result = mysqli_query(
                                                 </a>
 
                                             <?php endif; ?>
-
                                         </td>
 
                                     </tr>
@@ -593,11 +546,8 @@ $result = mysqli_query(
 
                                 <tr>
 
-                                    <td colspan="6"
-                                        class="text-center">
-
+                                    <td colspan="7" class="text-center">
                                         No categories found.
-
                                     </td>
 
                                 </tr>
