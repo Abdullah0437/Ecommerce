@@ -54,8 +54,7 @@ if (isset($_GET['search'])) {
 // ==================================================
 
 if (
-    $_SERVER["REQUEST_METHOD"] === "POST"
-    && isset($_POST['toggle_status'])
+    $_SERVER["REQUEST_METHOD"] === "POST"  && isset($_POST['toggle_status'])
 ) {
 
     $product_id = (int) $_POST['toggle_status'];
@@ -71,26 +70,15 @@ if (
         WHERE id = ?
     ";
 
-    $statusStmt = mysqli_prepare(
-        $connect,
-        $statusQuery
-    );
+    $statusStmt = mysqli_prepare($connect, $statusQuery);
 
-    mysqli_stmt_bind_param(
-        $statusStmt,
-        "i",
-        $product_id
-    );
+    mysqli_stmt_bind_param($statusStmt, "i", $product_id);
 
     mysqli_stmt_execute($statusStmt);
 
-    $statusResult = mysqli_stmt_get_result(
-        $statusStmt
-    );
+    $statusResult = mysqli_stmt_get_result($statusStmt);
 
-    $product = mysqli_fetch_assoc(
-        $statusResult
-    );
+    $product = mysqli_fetch_assoc($statusResult);
 
 
     // ----------------------------------------------
@@ -118,41 +106,24 @@ if (
             WHERE id = ?
         ";
 
-        $updateStmt = mysqli_prepare(
-            $connect,
-            $updateQuery
-        );
+        $updateStmt = mysqli_prepare($connect, $updateQuery);
 
-        mysqli_stmt_bind_param(
-            $updateStmt,
-            "si",
-            $newStatus,
-            $product_id
-        );
+        mysqli_stmt_bind_param($updateStmt, "si", $newStatus, $product_id);
 
-        mysqli_stmt_execute(
-            $updateStmt
-        );
+        mysqli_stmt_execute($updateStmt);
 
 
         // ------------------------------------------
         // REDIRECT AFTER POST
         // ------------------------------------------
 
-        if ($search !== "") {
-
-            header(
-                "Location: products.php?message=status_updated&search="
-                    . urlencode($search)
-            );
+        if (!empty($search)) {
+            header("Location: products.php?message=status_updated&search=" . urlencode($search));
         } else {
-
-            header(
-                "Location: products.php?message=status_updated"
-            );
+            header("Location: products.php?message=status_updated");
         }
 
-        exit;
+        exit();
     }
 }
 
