@@ -13,14 +13,14 @@ if (!$connect) {
     die("Database Connection Failed: " . mysqli_connect_error());
 }
 
-// Admin authentication
+
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: login.php");
     exit;
 }
 
-// Fetch active categories
+
 
 $categoryQuery = "SELECT id,name 
                   FROM categories 
@@ -45,7 +45,7 @@ $success = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    // Get form values
+   
     $productName = trim($_POST['product_name'] ?? "");
     $categoryId = $_POST['category_id'] ?? "";
     $description = trim($_POST['description'] ?? "");
@@ -54,19 +54,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $status = $_POST['status'] ?? "";
 
 
-    // Product Name Validation
+   
     if ($productName === "") {
         $productNameErr = "Product name is required.";
     }
 
 
-    // Category Validation
+
     if ($categoryId === "") {
         $categoryErr = "Please select a category.";
     }
 
 
-    // Price Validation
+    
     if ($price === "") {
         $priceErr = "Price is required.";
     } elseif (!is_numeric($price) || $price <= 0) {
@@ -74,7 +74,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
 
-    // Stock Validation
+    
     if ($stockQuantity === "") {
         $stockErr = "Stock quantity is required.";
     } elseif (!is_numeric($stockQuantity) || $stockQuantity < 0) {
@@ -82,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
 
-    // Status Validation
+   
     if ($status === "") {
         $statusErr = "Please select a status.";
     } elseif ($status !== "Active" && $status !== "Inactive") {
@@ -90,7 +90,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
 
-    // Image Validation
+   
     $target_dir = "../Images/";
     $target_file = "";
 
@@ -132,7 +132,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
 
-    // If there are no errors
+   
     if (
         $productNameErr === "" &&
         $categoryErr === "" &&
@@ -146,7 +146,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             $imageErr = "File upload failed.";
         }
-        // Insert product
+       
         $query = "INSERT INTO products
                       (category_id, name, description, price,
                        stock_quantity, image, status)
@@ -213,7 +213,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             <div class="col-lg-9 col-xl-8">
 
-                <!-- Page Header -->
+                
                 <div class="mb-4">
                     <h2 class="fw-bold mb-1">
                         <i class="bi bi-box-seam"></i>
@@ -226,10 +226,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </div>
 
 
-                <!-- Product Form Card -->
+                
                 <div class="card border-3  shadow-sm">
 
-                    <!-- Card Header -->
+                   
                     <div class="card-header bg-white border-0 py-3">
                         <h5 class="mb-0 ">
                             <b>Product Information</b>
@@ -251,7 +251,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             enctype="multipart/form-data">
 
 
-                            <!-- Product Name -->
                             <div class="mb-4">
 
                                 <label class="form-label fw-semibold">
@@ -276,7 +275,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
 
-                            <!-- Category -->
+                         
                             <div class="mb-4">
 
                                 <label class="form-label fw-semibold">
@@ -312,7 +311,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
 
-                            <!-- Description -->
+                           
                             <div class="mb-4">
 
                                 <label class="form-label fw-semibold">
@@ -330,10 +329,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
 
-                            <!-- Price & Stock -->
+                            
                             <div class="row">
 
-                                <!-- Price -->
+                              
                                 <div class="col-md-6 mb-4">
 
                                     <label class="form-label fw-semibold">
@@ -364,7 +363,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
 
-                                <!-- Stock -->
+                               
                                 <div class="col-md-6 mb-4">
 
                                     <label class="form-label fw-semibold">
@@ -389,7 +388,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             </div>
 
 
-                            <!-- Image -->
+                          
                             <div class="mb-4">
 
                                 <label class="form-label fw-semibold">
@@ -412,7 +411,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
 
-                            <!-- Status -->
+                         
                             <div class="mb-4">
 
                                 <label class="form-label fw-semibold">
@@ -452,14 +451,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
 
-                            <!-- Buttons -->
+                        
                             <div class="d-flex justify-content-end gap-2">
 
                                 <a
                                     href="products.php"
                                     class="btn btn-outline-secondary border px-4">
 
-                                    Cancel
+                                    Back to Products
 
                                 </a>
 

@@ -1,30 +1,26 @@
 <?php
 
-session_start();
+require_once "../includes/auth.php";
 
 $host = "localhost";
 $username = "root";
 $password = "";
 $database = "ecommerce";
 
-$connect = mysqli_connect($host, $username, $password, $database);
+$connect = mysqli_connect(
+    $host,
+    $username,
+    $password,
+    $database
+);
 
 if (!$connect) {
     die("Database Connection Failed: " . mysqli_connect_error());
 }
 
-// Admin authentication
-
-if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
-    exit;
-}
-
 $message = "";
 $error = "";
 
-
-// ADD CATEGORY
 
 if (isset($_POST['add_category'])) {
 
@@ -37,9 +33,17 @@ if (isset($_POST['add_category'])) {
         $error = "Category name is required.";
     } else {
 
-        $check = mysqli_prepare($connect, "SELECT id FROM categories WHERE name = ?");
+        $check = mysqli_prepare(
+            $connect,
+            "SELECT id FROM categories WHERE name = ?"
+        );
 
-        mysqli_stmt_bind_param($check, "s", $name);
+        mysqli_stmt_bind_param(
+            $check,
+            "s",
+            $name
+        );
+
         mysqli_stmt_execute($check);
         mysqli_stmt_store_result($check);
 
@@ -79,9 +83,6 @@ if (isset($_POST['add_category'])) {
 }
 
 
-
-// UPDATE CATEGORY
-
 if (isset($_POST['update_category'])) {
 
     $id = (int) $_POST['id'];
@@ -93,6 +94,7 @@ if (isset($_POST['update_category'])) {
 
         $error = "Category name is required.";
     } else {
+
         $check = mysqli_prepare(
             $connect,
             "SELECT id
@@ -120,8 +122,8 @@ if (isset($_POST['update_category'])) {
                 $connect,
                 "UPDATE categories
                  SET name = ?,
-                    description = ?,
-                    status = ?
+                     description = ?,
+                     status = ?
                  WHERE id = ?"
             );
 
@@ -150,7 +152,6 @@ if (isset($_POST['update_category'])) {
 }
 
 
-// DELETE / DEACTIVATE CATEGORY
 
 if (isset($_GET['delete'])) {
 
@@ -159,11 +160,15 @@ if (isset($_GET['delete'])) {
     $stmt = mysqli_prepare(
         $connect,
         "UPDATE categories
-        SET status = 'Inactive'
-        WHERE id = ?"
+         SET status = 'Inactive'
+         WHERE id = ?"
     );
 
-    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_bind_param(
+        $stmt,
+        "i",
+        $id
+    );
 
     if (mysqli_stmt_execute($stmt)) {
 
@@ -177,7 +182,7 @@ if (isset($_GET['delete'])) {
 }
 
 
-// ACTIVATE CATEGORY
+
 
 if (isset($_GET['activate'])) {
 
@@ -186,11 +191,15 @@ if (isset($_GET['activate'])) {
     $stmt = mysqli_prepare(
         $connect,
         "UPDATE categories
-        SET status = 'Active'
-        WHERE id = ?"
+         SET status = 'Active'
+         WHERE id = ?"
     );
 
-    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_bind_param(
+        $stmt,
+        "i",
+        $id
+    );
 
     if (mysqli_stmt_execute($stmt)) {
 
@@ -204,7 +213,7 @@ if (isset($_GET['activate'])) {
 }
 
 
-// GET CATEGORY FOR EDIT
+
 
 $editCategory = null;
 
@@ -215,11 +224,16 @@ if (isset($_GET['edit'])) {
     $stmt = mysqli_prepare(
         $connect,
         "SELECT *
-        FROM categories
-        WHERE id = ?"
+         FROM categories
+         WHERE id = ?"
     );
 
-    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_bind_param(
+        $stmt,
+        "i",
+        $id
+    );
+
     mysqli_stmt_execute($stmt);
 
     $resultEdit = mysqli_stmt_get_result($stmt);
@@ -230,7 +244,7 @@ if (isset($_GET['edit'])) {
 }
 
 
-// FETCH ALL CATEGORIES
+
 
 $result = mysqli_query(
     $connect,
@@ -241,330 +255,516 @@ $result = mysqli_query(
 
 ?>
 
-<!doctype html>
-<html lang="en" data-bs-theme="light">
 
-<head>
-    <title>Category Management</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<?php include "includes/header.php"; ?>
 
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
-        crossorigin="anonymous" />
-</head>
 
-<body>
+<div class="page-header">
 
-    <div class="container mt-5">
+    <div
+        class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
-        <!-- HEADER -->
+        <div>
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="page-title">
 
-            <h2>Category Management</h2>
+                <i class="fa-solid fa-layer-group me-2"></i>
 
-            <a href="dashboard.php"
-                class="btn btn-info">
-                Dashboard
-            </a>
+                Category Management
+
+            </h2>
+
+            <p class="text-muted mb-0 mt-1">
+
+                Add, edit and manage product categories.
+
+            </p>
 
         </div>
 
 
-        <!-- SUCCESS MESSAGE -->
+        <a
+            href="dashboard.php"
+            class="btn btn-info">
 
-        <?php if ($message != ""): ?>
+            <i class="fa-solid fa-gauge me-1"></i>
 
-            <div class="alert alert-success">
-                <?= htmlspecialchars($message) ?>
-            </div>
+            Dashboard
+
+        </a>
+
+    </div>
+
+</div>
+
+
+
+
+<?php if ($message != ""): ?>
+
+    <div
+        class="alert alert-success alert-dismissible fade show"
+        role="alert">
+
+        <i class="fa-solid fa-circle-check me-2"></i>
+
+        <?= htmlspecialchars($message) ?>
+
+        <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert">
+        </button>
+
+    </div>
+
+<?php endif; ?>
+
+
+
+
+<?php if ($error != ""): ?>
+
+    <div
+        class="alert alert-danger alert-dismissible fade show"
+        role="alert">
+
+        <i class="fa-solid fa-circle-exclamation me-2"></i>
+
+        <?= htmlspecialchars($error) ?>
+
+        <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert">
+        </button>
+
+    </div>
+
+<?php endif; ?>
+
+
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-white">
+
+        <?php if ($editCategory): ?>
+
+            <h5 class="mb-0">
+
+                <i class="fa-solid fa-pen me-2"></i>
+
+                Edit Category
+
+            </h5>
+
+        <?php else: ?>
+
+            <h5 class="mb-0">
+
+                <i class="fa-solid fa-plus me-2"></i>
+
+                Add Category
+
+            </h5>
 
         <?php endif; ?>
 
-
-        <!-- ERROR MESSAGE -->
-
-        <?php if ($error != ""): ?>
-
-            <div class="alert alert-danger">
-                <?= htmlspecialchars($error) ?>
-            </div>
-
-        <?php endif; ?>
+    </div>
 
 
-        <!-- ADD / EDIT CATEGORY FORM -->
+    <div class="card-body">
 
-        <div class="card mb-4">
+        <form method="POST">
 
-            <div class="card-header">
+            <?php if ($editCategory): ?>
 
-                <?php if ($editCategory): ?>
+                <input
+                    type="hidden"
+                    name="id"
+                    value="<?= $editCategory['id'] ?>">
 
-                    <h5 class="mb-0">Edit Category</h5>
-
-                <?php else: ?>
-
-                    <h5 class="mb-0">Add Category</h5>
-
-                <?php endif; ?>
-
-            </div>
+            <?php endif; ?>
 
 
-            <div class="card-body">
-
-                <form method="POST">
-
-                    <?php if ($editCategory): ?>
-
-                        <input
-                            type="hidden"
-                            name="id"
-                            value="<?= $editCategory['id'] ?>">
-
-                    <?php endif; ?>
 
 
-                    <!-- CATEGORY NAME -->
+            <div class="mb-3">
 
-                    <div class="mb-3">
+                <label class="form-label">
 
-                        <label class="form-label">
-                            <b>Category Name</b>
-                        </label>
+                    <strong>Category Name</strong>
 
-                        <input
-                            type="text"
-                            name="name"
-                            class="form-control"
-                            value="<?= $editCategory ? htmlspecialchars($editCategory['name']) : '' ?>"
-                            required>
+                </label>
 
-                    </div>
-
-
-                    <!-- DESCRIPTION -->
-
-                    <div class="mb-3">
-
-                        <label class="form-label">
-                            <b>Description</b>
-                        </label>
-
-                        <textarea
-                            name="description"
-                            class="form-control"
-                            rows="3"><?= $editCategory ? htmlspecialchars($editCategory['description']) : '' ?></textarea>
-
-                    </div>
-
-
-                    <!-- STATUS -->
-
-                    <div class="mb-3">
-
-                        <label class="form-label">
-                            <b>Status</b>
-                        </label>
-
-                        <select name="status"
-                            class="form-select">
-
-                            <option value="Active"
-                                <?= ($editCategory && $editCategory['status'] == 'Active') ? 'selected' : '' ?>>
-                                Active
-                            </option>
-
-                            <option value="Inactive"
-                                <?= ($editCategory && $editCategory['status'] == 'Inactive') ? 'selected' : '' ?>>
-                                Inactive
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    <?php if ($editCategory): ?>
-
-                        <button
-                            type="submit"
-                            name="update_category"
-                            class="btn btn-primary">
-                            Update Category
-                        </button>
-
-                        <a
-                            href="categories.php"
-                            class="btn btn-secondary">
-                            Cancel
-                        </a>
-
-                    <?php else: ?>
-
-                        <button
-                            type="submit"
-                            name="add_category"
-                            class="btn btn-success">
-                            Add Category
-                        </button>
-
-                    <?php endif; ?>
-
-                </form>
-
-            </div>
-
-        </div>
-
-
-        <!-- CATEGORY LIST -->
-
-        <div class="card">
-
-            <div class="card-header">
-
-                <h5 class="mb-0">
-                    All Categories
-                </h5>
+                <input
+                    type="text"
+                    name="name"
+                    class="form-control"
+                    placeholder="Enter category name"
+                    value="<?= $editCategory
+                                ? htmlspecialchars($editCategory['name'])
+                                : '' ?>"
+                    required>
 
             </div>
 
 
-            <div class="card-body">
-
-                <div class="table-responsive">
-
-                    <table class="table table-bordered table-hover">
-
-                        <thead class="table-dark">
-                            <tr>
-                                <th rowspan="2">ID</th>
-                                <th rowspan="2">Category Name</th>
-                                <th rowspan="2">Description</th>
-                                <th rowspan="2">Status</th>
-                                <th rowspan="2">Created Date</th>
-                                <th colspan="2" class="text-center">Actions</th>
-                            </tr>
-                        </thead>
 
 
-                        <tbody>
+            <div class="mb-3">
 
-                            <?php if (mysqli_num_rows($result) > 0): ?>
+                <label class="form-label">
 
-                                <?php while ($category = mysqli_fetch_assoc($result)): ?>
+                    <strong>Description</strong>
 
-                                    <tr>
+                </label>
 
-                                        <td>
-                                            <?= $category['id'] ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= htmlspecialchars(
-                                                $category['name']
-                                            ) ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= htmlspecialchars(
-                                                $category['description']
-                                            ) ?>
-                                        </td>
-
-
-                                        <td>
-
-                                            <?php if (
-                                                $category['status'] == 'Active'
-                                            ): ?>
-
-                                                <span class="badge bg-success">
-                                                    Active
-                                                </span>
-
-                                            <?php else: ?>
-
-                                                <span class="badge bg-secondary">
-                                                    Inactive
-                                                </span>
-
-                                            <?php endif; ?>
-
-                                        </td>
-
-
-                                        <td>
-                                            <?= $category['created_at'] ?>
-                                        </td>
-
-
-                                        <!-- EDIT -->
-                                        <td>
-                                            <a
-                                                href="?edit=<?= $category['id'] ?>"
-                                                class="btn btn-sm btn-primary">
-                                                Edit
-                                            </a>
-                                        </td>
-
-                                        <!-- ACTIVATE / DEACTIVATE -->
-                                        <td>
-                                            <?php if ($category['status'] == 'Active'): ?>
-
-                                                <a
-                                                    href="?delete=<?= $category['id'] ?>"
-                                                    class="btn btn-sm btn-danger"
-                                                    onclick="return confirm(
-                'Are you sure you want to deactivate this category?')">
-                                                    Deactivate
-                                                </a>
-
-                                            <?php else: ?>
-
-                                                <a
-                                                    href="?activate=<?= $category['id'] ?>"
-                                                    class="btn btn-sm btn-success">
-                                                    Activate
-                                                </a>
-
-                                            <?php endif; ?>
-                                        </td>
-
-                                    </tr>
-
-                                <?php endwhile; ?>
-
-                            <?php else: ?>
-
-                                <tr>
-
-                                    <td colspan="7" class="text-center">
-                                        No categories found.
-                                    </td>
-
-                                </tr>
-
-                            <?php endif; ?>
-
-                        </tbody>
-
-                    </table>
-
-                </div>
+                <textarea
+                    name="description"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Enter category description"><?= $editCategory
+                                                                    ? htmlspecialchars($editCategory['description'])
+                                                                    : '' ?></textarea>
 
             </div>
+
+
+
+
+            <div class="mb-3">
+
+                <label class="form-label">
+
+                    <strong>Status</strong>
+
+                </label>
+
+                <select
+                    name="status"
+                    class="form-select">
+
+                    <option
+                        value="Active"
+                        <?= (
+                            $editCategory &&
+                            $editCategory['status'] == 'Active'
+                        ) ? 'selected' : '' ?>>
+
+                        Active
+
+                    </option>
+
+                    <option
+                        value="Inactive"
+                        <?= (
+                            $editCategory &&
+                            $editCategory['status'] == 'Inactive'
+                        ) ? 'selected' : '' ?>>
+
+                        Inactive
+
+                    </option>
+
+                </select>
+
+            </div>
+
+
+
+
+            <?php if ($editCategory): ?>
+
+                <button
+                    type="submit"
+                    name="update_category"
+                    class="btn btn-primary">
+
+                    <i class="fa-solid fa-floppy-disk me-1"></i>
+
+                    Update Category
+
+                </button>
+
+                <a
+                    href="categories.php"
+                    class="btn btn-secondary">
+
+                    Cancel
+
+                </a>
+
+            <?php else: ?>
+
+                <button
+                    type="submit"
+                    name="add_category"
+                    class="btn btn-success">
+
+                    <i class="fa-solid fa-plus me-1"></i>
+
+                    Add Category
+
+                </button>
+
+            <?php endif; ?>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-white">
+
+        <div
+            class="d-flex justify-content-between align-items-center">
+
+            <h5 class="mb-0">
+
+                <i class="fa-solid fa-list me-2"></i>
+
+                All Categories
+
+            </h5>
+
+            <span class="badge bg-primary">
+
+                <?= mysqli_num_rows($result) ?> Categories
+
+            </span>
 
         </div>
 
     </div>
-</body>
 
-</html>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>Category Name</th>
+
+                        <th>Description</th>
+
+                        <th>Status</th>
+
+                        <th>Created Date</th>
+
+                        <th class="text-center">
+                            Edit
+                        </th>
+
+                        <th class="text-center">
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    <?php if (mysqli_num_rows($result) > 0): ?>
+
+
+                        <?php while (
+                            $category = mysqli_fetch_assoc($result)
+                        ): ?>
+
+                            <tr>
+
+
+
+
+                                <td>
+
+                                    <?= $category['id'] ?>
+
+                                </td>
+
+
+
+
+                                <td>
+
+                                    <strong>
+
+                                        <?= htmlspecialchars(
+                                            $category['name']
+                                        ) ?>
+
+                                    </strong>
+
+                                </td>
+
+
+
+
+                                <td>
+
+                                    <?= htmlspecialchars(
+                                        $category['description']
+                                    ) ?>
+
+                                </td>
+
+
+
+
+                                <td>
+
+                                    <?php if (
+                                        $category['status'] == 'Active'
+                                    ): ?>
+
+                                        <span class="badge bg-success">
+
+                                            Active
+
+                                        </span>
+
+                                    <?php else: ?>
+
+                                        <span class="badge bg-secondary">
+
+                                            Inactive
+
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+
+
+
+                                <td>
+
+                                    <?= htmlspecialchars(
+                                        $category['created_at']
+                                    ) ?>
+
+                                </td>
+
+
+
+
+                                <td class="text-center">
+
+                                    <a
+                                        href="?edit=<?= $category['id'] ?>"
+                                        class="btn btn-sm btn-outline-primary"
+                                        title="Edit Category">
+
+                                        <i class="fa-solid fa-pen"></i>
+
+                                    </a>
+
+                                </td>
+
+
+
+
+                                <td class="text-center">
+
+                                    <?php if (
+                                        $category['status'] == 'Active'
+                                    ): ?>
+
+                                        <a
+                                            href="?delete=<?= $category['id'] ?>"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Deactivate Category"
+                                            onclick="return confirm(
+                                                'Are you sure you want to deactivate this category?'
+                                            );">
+
+                                            <i class="fa-solid fa-ban"></i>
+
+                                        </a>
+
+                                    <?php else: ?>
+
+                                        <a
+                                            href="?activate=<?= $category['id'] ?>"
+                                            class="btn btn-sm btn-outline-success"
+                                            title="Activate Category">
+
+                                            <i class="fa-solid fa-check"></i>
+
+                                        </a>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+
+                            </tr>
+
+                        <?php endwhile; ?>
+
+
+                    <?php else: ?>
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                class="text-center py-5">
+
+                                <i
+                                    class="fa-solid fa-layer-group fa-3x text-muted mb-3">
+                                </i>
+
+                                <h5>
+                                    No Categories Found
+                                </h5>
+
+                                <p class="text-muted">
+
+                                    No categories have been added yet.
+
+                                </p>
+
+                            </td>
+
+                        </tr>
+
+                    <?php endif; ?>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<?php include "includes/footer.php"; ?>
+
+
+<?php
+
+mysqli_close($connect);
+
+?>

@@ -1,12 +1,18 @@
 <?php
 
 require_once "../includes/auth.php";
+
 $host = "localhost";
 $username = "root";
 $password = "";
 $database = "ecommerce";
 
-$connect = mysqli_connect($host, $username, $password, $database);
+$connect = mysqli_connect(
+    $host,
+    $username,
+    $password,
+    $database
+);
 
 if (!$connect) {
     die("Database Connection Failed: " . mysqli_connect_error());
@@ -15,119 +21,196 @@ if (!$connect) {
 
 
 
-
-// Total Products
 $productQuery = "SELECT COUNT(*) AS total FROM products";
-$productResult = mysqli_query($connect, $productQuery);
-$productData = mysqli_fetch_assoc($productResult);
+
+$productResult = mysqli_query(
+    $connect,
+    $productQuery
+);
+
+$productData = mysqli_fetch_assoc(
+    $productResult
+);
 
 $totalProducts = $productData['total'];
 
 
-// Total Categories
+
 $categoryQuery = "SELECT COUNT(*) AS total FROM categories";
-$categoryResult = mysqli_query($connect, $categoryQuery);
-$categoryData = mysqli_fetch_assoc($categoryResult);
+
+$categoryResult = mysqli_query(
+    $connect,
+    $categoryQuery
+);
+
+$categoryData = mysqli_fetch_assoc(
+    $categoryResult
+);
 
 $totalCategories = $categoryData['total'];
 
 
-// Total Users
+
+
 $userQuery = "SELECT COUNT(*) AS total FROM users";
-$userResult = mysqli_query($connect, $userQuery);
-$userData = mysqli_fetch_assoc($userResult);
+
+$userResult = mysqli_query(
+    $connect,
+    $userQuery
+);
+
+$userData = mysqli_fetch_assoc(
+    $userResult
+);
 
 $totalUsers = $userData['total'];
 
 
-// Total Orders
+
 $orderQuery = "SELECT COUNT(*) AS total FROM orders";
-$orderResult = mysqli_query($connect, $orderQuery);
-$orderData = mysqli_fetch_assoc($orderResult);
+
+$orderResult = mysqli_query(
+    $connect,
+    $orderQuery
+);
+
+$orderData = mysqli_fetch_assoc(
+    $orderResult
+);
 
 $totalOrders = $orderData['total'];
 
 
-// Pending Orders
+
 $pendingQuery = "
     SELECT COUNT(*) AS total
     FROM orders
     WHERE status = 'Pending'
 ";
 
-$pendingResult = mysqli_query($connect, $pendingQuery);
-$pendingData = mysqli_fetch_assoc($pendingResult);
+$pendingResult = mysqli_query(
+    $connect,
+    $pendingQuery
+);
+
+$pendingData = mysqli_fetch_assoc(
+    $pendingResult
+);
 
 $pendingOrders = $pendingData['total'];
 
 
-// Completed Orders
+
+
 $completedQuery = "
     SELECT COUNT(*) AS total
     FROM orders
     WHERE status = 'Delivered'
 ";
 
-$completedResult = mysqli_query($connect, $completedQuery);
-$completedData = mysqli_fetch_assoc($completedResult);
+$completedResult = mysqli_query(
+    $connect,
+    $completedQuery
+);
+
+$completedData = mysqli_fetch_assoc(
+    $completedResult
+);
 
 $completedOrders = $completedData['total'];
 
 
-// Total Sales
+
 $salesQuery = "
     SELECT COALESCE(SUM(total), 0) AS total_sales
     FROM orders
     WHERE status != 'Cancelled'
 ";
 
-$salesResult = mysqli_query($connect, $salesQuery);
-$salesData = mysqli_fetch_assoc($salesResult);
+$salesResult = mysqli_query(
+    $connect,
+    $salesQuery
+);
+
+$salesData = mysqli_fetch_assoc(
+    $salesResult
+);
 
 $totalSales = $salesData['total_sales'];
 
+
+
+
+include "includes/header.php";
+
 ?>
-<!doctype html>
-<html lang="en" data-bs-theme="light">
 
-<head>
-    <title>Admin Dashboard</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
-        crossorigin="anonymous" />
-</head>
 
-<body>
+<div class="page-header">
 
-    <!-- Navbar -->
+    <h2 class="page-title">
 
-    <nav class="navbar navbar-dark bg-dark">
+        <i class="fa-solid fa-gauge me-2"></i>
 
-        <div class="container-fluid">
+        Dashboard
 
-            <span class="navbar-brand">
-                Ecommerce Admin
-            </span>
+    </h2>
 
-            <div class="d-flex align-items-center">
+    <p class="text-muted mb-0 mt-1">
 
-                <span class="text-white me-3">
+        Overview of your ecommerce website.
 
-                    Welcome,
-                    <?= htmlspecialchars($_SESSION['admin_name']) ?>
+    </p>
 
-                </span>
+</div>
+
+
+
+
+<div class="row g-4">
+
+
+   
+
+    <div class="col-sm-6 col-xl-3">
+
+        <div class="card dashboard-card shadow-sm">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <h6 class="text-muted">
+
+                            Total Products
+
+                        </h6>
+
+                        <h2 class="fw-bold">
+
+                            <?= $totalProducts ?>
+
+                        </h2>
+
+                    </div>
+
+                    <div>
+
+                        <i class="fa-solid fa-box fa-2x text-primary"></i>
+
+                    </div>
+
+                </div>
+
 
                 <a
-                    href="logout.php"
-                    class="btn btn-danger">
+                    href="products.php"
+                    class="btn btn-primary btn-sm mt-2">
 
-                    Logout
+                    View Products
 
                 </a>
 
@@ -135,243 +218,316 @@ $totalSales = $salesData['total_sales'];
 
         </div>
 
-    </nav>
+    </div>
 
 
-    <!-- Dashboard -->
-
-    <div class="container mt-5">
-
-        <h2 class="mb-4">
-            Admin Dashboard
-        </h2>
 
 
-        <!-- Statistics Cards -->
+    <div class="col-sm-6 col-xl-3">
 
-        <div class="row g-4">
+        <div class="card dashboard-card shadow-sm">
 
+            <div class="card-body">
 
-            <!-- Products -->
+                <div class="d-flex justify-content-between">
 
-            <div class="col-md-4 col-lg-3">
+                    <div>
 
-                <div class="card shadow-sm">
+                        <h6 class="text-muted">
 
-                    <div class="card-body">
-
-                        <h5 class="card-title">
-                            Total Products
-                        </h5>
-
-                        <h2>
-                            <?= $totalProducts ?>
-                        </h2>
-
-                        <a
-                            href="products.php"
-                            class="btn btn-primary btn-sm">
-
-                            View Products
-
-                        </a>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- Categories -->
-
-            <div class="col-md-4 col-lg-3">
-
-                <div class="card shadow-sm">
-
-                    <div class="card-body">
-
-                        <h5 class="card-title">
                             Total Categories
-                        </h5>
 
-                        <h2>
+                        </h6>
+
+                        <h2 class="fw-bold">
+
                             <?= $totalCategories ?>
+
                         </h2>
 
-                        <a
-                            href="categories.php"
-                            class="btn btn-primary btn-sm">
+                    </div>
 
-                            View Categories
+                    <div>
 
-                        </a>
+                        <i class="fa-solid fa-layer-group fa-2x text-info"></i>
 
                     </div>
 
                 </div>
 
-            </div>
 
+                <a
+                    href="categories.php"
+                    class="btn btn-info btn-sm mt-2">
 
-            <!-- Users -->
+                    View Categories
 
-            <div class="col-md-4 col-lg-3">
-
-                <div class="card shadow-sm">
-
-                    <div class="card-body">
-
-                        <h5 class="card-title">
-                            Total Users
-                        </h5>
-
-                        <h2>
-                            <?= $totalUsers ?>
-                        </h2>
-
-                        <a
-                            href="users.php"
-                            class="btn btn-primary btn-sm">
-
-                            View Users
-
-                        </a>
-
-                    </div>
-
-                </div>
+                </a>
 
             </div>
-
-
-            <!-- Orders -->
-
-            <div class="col-md-4 col-lg-3">
-
-                <div class="card shadow-sm">
-
-                    <div class="card-body">
-
-                        <h5 class="card-title">
-                            Total Orders
-                        </h5>
-
-                        <h2>
-                            <?= $totalOrders ?>
-                        </h2>
-
-                        <a
-                            href="orders.php"
-                            class="btn btn-primary btn-sm">
-
-                            View Orders
-
-                        </a>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- Pending Orders -->
-
-            <div class="col-md-4 col-lg-3">
-
-                <div class="card shadow-sm">
-
-                    <div class="card-body">
-
-                        <h5 class="card-title">
-                            Pending Orders
-                        </h5>
-
-                        <h2>
-                            <?= $pendingOrders ?>
-                        </h2>
-
-                        <a
-                            href="orders.php?status=Pending"
-                            class="btn btn-warning btn-sm">
-
-                            View Pending
-
-                        </a>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- Completed Orders -->
-
-            <div class="col-md-4 col-lg-3">
-
-                <div class="card shadow-sm">
-
-                    <div class="card-body">
-
-                        <h5 class="card-title">
-                            Completed Orders
-                        </h5>
-
-                        <h2>
-                            <?= $completedOrders ?>
-                        </h2>
-
-                        <a
-                            href="orders.php?status=Delivered"
-                            class="btn btn-success btn-sm">
-
-                            View Completed
-
-                        </a>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- Total Sales -->
-
-            <div class="col-md-4 col-lg-3">
-
-                <div class="card shadow-sm">
-
-                    <div class="card-body">
-
-                        <h5 class="card-title">
-                            Total Sales
-                        </h5>
-
-                        <h2>
-                            Rs. <?= number_format($totalSales, 2) ?>
-                        </h2>
-
-                        <a
-                            href="orders.php"
-                            class="btn btn-success btn-sm">
-
-                            View Sales
-
-                        </a>
-
-                    </div>
-
-                </div>
-
-            </div>
-
 
         </div>
 
     </div>
-</body>
 
-</html>
+
+    
+
+    <div class="col-sm-6 col-xl-3">
+
+        <div class="card dashboard-card shadow-sm">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <h6 class="text-muted">
+
+                            Total Users
+
+                        </h6>
+
+                        <h2 class="fw-bold">
+
+                            <?= $totalUsers ?>
+
+                        </h2>
+
+                    </div>
+
+                    <div>
+
+                        <i class="fa-solid fa-users fa-2x text-success"></i>
+
+                    </div>
+
+                </div>
+
+
+                <a
+                    href="users.php"
+                    class="btn btn-success btn-sm mt-2">
+
+                    View Users
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+  
+
+    <div class="col-sm-6 col-xl-3">
+
+        <div class="card dashboard-card shadow-sm">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <h6 class="text-muted">
+
+                            Total Orders
+
+                        </h6>
+
+                        <h2 class="fw-bold">
+
+                            <?= $totalOrders ?>
+
+                        </h2>
+
+                    </div>
+
+                    <div>
+
+                        <i class="fa-solid fa-cart-shopping fa-2x text-warning"></i>
+
+                    </div>
+
+                </div>
+
+
+                <a
+                    href="orders.php"
+                    class="btn btn-warning btn-sm mt-2">
+
+                    View Orders
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+  
+
+    <div class="col-sm-6 col-xl-3">
+
+        <div class="card dashboard-card shadow-sm">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <h6 class="text-muted">
+
+                            Pending Orders
+
+                        </h6>
+
+                        <h2 class="fw-bold">
+
+                            <?= $pendingOrders ?>
+
+                        </h2>
+
+                    </div>
+
+                    <div>
+
+                        <i class="fa-solid fa-clock fa-2x text-warning"></i>
+
+                    </div>
+
+                </div>
+
+
+                <a
+                    href="orders.php?status=Pending"
+                    class="btn btn-warning btn-sm mt-2">
+
+                    View Pending
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+   
+
+    <div class="col-sm-6 col-xl-3">
+
+        <div class="card dashboard-card shadow-sm">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <h6 class="text-muted">
+
+                            Completed Orders
+
+                        </h6>
+
+                        <h2 class="fw-bold">
+
+                            <?= $completedOrders ?>
+
+                        </h2>
+
+                    </div>
+
+                    <div>
+
+                        <i class="fa-solid fa-circle-check fa-2x text-success"></i>
+
+                    </div>
+
+                </div>
+
+
+                <a
+                    href="orders.php?status=Delivered"
+                    class="btn btn-success btn-sm mt-2">
+
+                    View Completed
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+  
+
+    <div class="col-sm-6 col-xl-3">
+
+        <div class="card dashboard-card shadow-sm">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between">
+
+                    <div>
+
+                        <h6 class="text-muted">
+
+                            Total Sales
+
+                        </h6>
+
+                        <h2 class="fw-bold">
+
+                            Rs. <?= number_format($totalSales, 2) ?>
+
+                        </h2>
+
+                    </div>
+
+                    <div>
+
+                        <i class="fa-solid fa-money-bill-wave fa-2x text-success"></i>
+
+                    </div>
+
+                </div>
+
+
+                <a
+                    href="orders.php"
+                    class="btn btn-success btn-sm mt-2">
+
+                    View Sales
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<?php
+
+include "includes/footer.php";
+
+mysqli_close($connect);
+
+?>

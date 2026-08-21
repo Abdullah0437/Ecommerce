@@ -6,7 +6,6 @@ $host = "localhost";
 $username = "root";
 $password = "";
 $database = "ecommerce";
-
 $connect = mysqli_connect($host, $username, $password, $database);
 
 if (!$connect) {
@@ -26,7 +25,6 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $product_id = (int)$_GET['id'];
 
 
-// Get product
 
 $query = "SELECT * 
         FROM products 
@@ -44,7 +42,7 @@ if (!$product) {
 }
 
 
-// Get categories
+
 
 $categoryQuery = "SELECT id, name 
                 FROM categories 
@@ -52,7 +50,7 @@ $categoryQuery = "SELECT id, name
 $categoryResult = mysqli_query($connect, $categoryQuery);
 
 
-// Errors
+
 
 $nameErr = "";
 $categoryErr = "";
@@ -61,7 +59,7 @@ $stockErr = "";
 $imageErr = "";
 
 
-// Update product
+
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
@@ -72,19 +70,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stock = $_POST['stock_quantity'];
     $status = $_POST['status'];
 
-    // Name validation
+  
 
     if ($name == "") {
         $nameErr = "Product name is required.";
     }
 
-    // Category validation
+
 
     if ($category_id == "" || !is_numeric($category_id)) {
         $categoryErr = "Category is required.";
     }
 
-    // Price validation
 
     if ($price == "") {
         $priceErr = "Price is required.";
@@ -92,7 +89,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $priceErr = "Enter a valid price.";
     }
 
-    // Stock validation
+  
 
     if ($stock == "") {
         $stockErr = "Stock is required.";
@@ -101,7 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
 
-    // Image
+  
 
     $image = $product['image'];
 
@@ -146,7 +143,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
 
-    // Update
+  
 
     if (
         $nameErr == "" &&
@@ -156,7 +153,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $imageErr == ""
     ) {
 
-        // Upload new image if selected
+       
 
         if ($image != $product['image']) {
 
@@ -204,7 +201,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             if (mysqli_stmt_execute($updateStmt)) {
 
-                // Delete old image
+                
 
                 if (
                     $image != $product['image'] &&
@@ -299,7 +296,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 <form method="POST" enctype="multipart/form-data">
 
-                    <!-- Product Name -->
+                   
 
                     <div class="mb-3">
 
@@ -324,7 +321,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
 
 
-                    <!-- Category -->
+                 
 
                     <div class="mb-3">
 
@@ -361,7 +358,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
 
 
-                    <!-- Description -->
+                 
 
                     <div class="mb-3">
 
@@ -370,14 +367,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         </label>
 
                         <textarea
-    name="description"
-    rows="4"
-    class="form-control text-start"><?= htmlspecialchars($_POST['description'] ?? $product['description']) ?></textarea>
+                                name="description"
+                                rows="4"
+                                class="form-control text-start"><?= htmlspecialchars($_POST['description'] ?? $product['description']) ?></textarea>
 
                     </div>
 
 
-                    <!-- Price -->
+                 
 
                     <div class="mb-3">
 
@@ -402,7 +399,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
 
 
-                    <!-- Stock -->
+                 
 
                     <div class="mb-3">
 
@@ -427,7 +424,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
 
 
-                    <!-- Current Image -->
+                    
 
                     <div class="mb-3">
 
@@ -461,7 +458,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
 
 
-                    <!-- New Image -->
+                   
 
                     <div class="mb-3">
 
@@ -487,7 +484,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                     </div>
 
-                    <!-- Status -->
+                  
 
                     <div class="mb-4">
 
