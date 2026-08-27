@@ -19,7 +19,9 @@ if (!$connect) {
 }
 
 
-
+/* =========================
+   TOTAL PRODUCTS
+========================= */
 
 $productQuery = "SELECT COUNT(*) AS total FROM products";
 
@@ -35,6 +37,9 @@ $productData = mysqli_fetch_assoc(
 $totalProducts = $productData['total'];
 
 
+/* =========================
+   TOTAL CATEGORIES
+========================= */
 
 $categoryQuery = "SELECT COUNT(*) AS total FROM categories";
 
@@ -50,7 +55,9 @@ $categoryData = mysqli_fetch_assoc(
 $totalCategories = $categoryData['total'];
 
 
-
+/* =========================
+   TOTAL USERS
+========================= */
 
 $userQuery = "SELECT COUNT(*) AS total FROM users";
 
@@ -66,6 +73,9 @@ $userData = mysqli_fetch_assoc(
 $totalUsers = $userData['total'];
 
 
+/* =========================
+   TOTAL ORDERS
+========================= */
 
 $orderQuery = "SELECT COUNT(*) AS total FROM orders";
 
@@ -81,6 +91,9 @@ $orderData = mysqli_fetch_assoc(
 $totalOrders = $orderData['total'];
 
 
+/* =========================
+   PENDING ORDERS
+========================= */
 
 $pendingQuery = "
     SELECT COUNT(*) AS total
@@ -100,7 +113,9 @@ $pendingData = mysqli_fetch_assoc(
 $pendingOrders = $pendingData['total'];
 
 
-
+/* =========================
+   COMPLETED ORDERS
+========================= */
 
 $completedQuery = "
     SELECT COUNT(*) AS total
@@ -120,6 +135,9 @@ $completedData = mysqli_fetch_assoc(
 $completedOrders = $completedData['total'];
 
 
+/* =========================
+   TOTAL SALES
+========================= */
 
 $salesQuery = "
     SELECT COALESCE(SUM(total), 0) AS total_sales
@@ -139,6 +157,21 @@ $salesData = mysqli_fetch_assoc(
 $totalSales = $salesData['total_sales'];
 
 
+/* =========================
+   RECENT ORDERS
+========================= */
+
+$recentOrdersQuery = "
+    SELECT id, customer_name, total, status, created_at
+    FROM orders
+    ORDER BY id DESC
+    LIMIT 5
+";
+
+$recentOrdersResult = mysqli_query(
+    $connect,
+    $recentOrdersQuery
+);
 
 
 include "includes/header.php";
@@ -146,72 +179,92 @@ include "includes/header.php";
 ?>
 
 
+<!-- PAGE HEADER -->
 
 <div class="page-header">
 
-    <h2 class="page-title">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
-        <i class="fa-solid fa-gauge me-2"></i>
+        <div>
 
-        Dashboard
+            <h2 class="page-title">
 
-    </h2>
+                <i class="fa-solid fa-gauge-high text-primary me-2"></i>
 
-    <p class="text-muted mb-0 mt-1">
+                Dashboard
 
-        Overview of your ecommerce website.
+            </h2>
 
-    </p>
+            <p class="text-muted mb-0 mt-2">
+
+                Welcome back! Here's what's happening with your store.
+
+            </p>
+
+        </div>
+
+        <div>
+
+            <a href="product-add.php" class="btn btn-primary">
+
+                <i class="fa-solid fa-plus me-1"></i>
+
+                Add Product
+
+            </a>
+
+        </div>
+
+    </div>
 
 </div>
 
 
-
+<!-- DASHBOARD CARDS -->
 
 <div class="row g-4">
 
 
-   
+    <!-- PRODUCTS -->
 
     <div class="col-sm-6 col-xl-3">
 
-        <div class="card dashboard-card shadow-sm">
+        <div class="card dashboard-card h-100">
 
-            <div class="card-body">
+            <div class="card-body p-4">
 
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-start">
 
                     <div>
 
-                        <h6 class="text-muted">
-
+                        <p class="text-muted mb-2">
                             Total Products
+                        </p>
 
-                        </h6>
-
-                        <h2 class="fw-bold">
-
+                        <h2 class="mb-0">
                             <?= $totalProducts ?>
-
                         </h2>
 
                     </div>
 
-                    <div>
+                    <div
+                        class="dashboard-icon"
+                        style="background:#dbeafe; color:#2563eb;">
 
-                        <i class="fa-solid fa-box fa-2x text-primary"></i>
+                        <i class="fa-solid fa-box-open"></i>
 
                     </div>
 
                 </div>
-
 
                 <a
                     href="products.php"
-                    class="btn btn-primary btn-sm mt-2">
+                    class="btn btn-primary btn-sm mt-4">
 
                     View Products
 
+                    <i class="fa-solid fa-arrow-right ms-1"></i>
+
                 </a>
 
             </div>
@@ -221,47 +274,46 @@ include "includes/header.php";
     </div>
 
 
-
+    <!-- CATEGORIES -->
 
     <div class="col-sm-6 col-xl-3">
 
-        <div class="card dashboard-card shadow-sm">
+        <div class="card dashboard-card h-100">
 
-            <div class="card-body">
+            <div class="card-body p-4">
 
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-start">
 
                     <div>
 
-                        <h6 class="text-muted">
-
+                        <p class="text-muted mb-2">
                             Total Categories
+                        </p>
 
-                        </h6>
-
-                        <h2 class="fw-bold">
-
+                        <h2 class="mb-0">
                             <?= $totalCategories ?>
-
                         </h2>
 
                     </div>
 
-                    <div>
+                    <div
+                        class="dashboard-icon"
+                        style="background:#e0f2fe; color:#0284c7;">
 
-                        <i class="fa-solid fa-layer-group fa-2x text-info"></i>
+                        <i class="fa-solid fa-layer-group"></i>
 
                     </div>
 
                 </div>
-
 
                 <a
                     href="categories.php"
-                    class="btn btn-info btn-sm mt-2">
+                    class="btn btn-info btn-sm mt-4 text-white">
 
                     View Categories
 
+                    <i class="fa-solid fa-arrow-right ms-1"></i>
+
                 </a>
 
             </div>
@@ -271,47 +323,46 @@ include "includes/header.php";
     </div>
 
 
-    
+    <!-- USERS -->
 
     <div class="col-sm-6 col-xl-3">
 
-        <div class="card dashboard-card shadow-sm">
+        <div class="card dashboard-card h-100">
 
-            <div class="card-body">
+            <div class="card-body p-4">
 
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-start">
 
                     <div>
 
-                        <h6 class="text-muted">
-
+                        <p class="text-muted mb-2">
                             Total Users
+                        </p>
 
-                        </h6>
-
-                        <h2 class="fw-bold">
-
+                        <h2 class="mb-0">
                             <?= $totalUsers ?>
-
                         </h2>
 
                     </div>
 
-                    <div>
+                    <div
+                        class="dashboard-icon"
+                        style="background:#dcfce7; color:#16a34a;">
 
-                        <i class="fa-solid fa-users fa-2x text-success"></i>
+                        <i class="fa-solid fa-users"></i>
 
                     </div>
 
                 </div>
-
 
                 <a
                     href="users.php"
-                    class="btn btn-success btn-sm mt-2">
+                    class="btn btn-success btn-sm mt-4">
 
                     View Users
 
+                    <i class="fa-solid fa-arrow-right ms-1"></i>
+
                 </a>
 
             </div>
@@ -321,47 +372,46 @@ include "includes/header.php";
     </div>
 
 
-  
+    <!-- ORDERS -->
 
     <div class="col-sm-6 col-xl-3">
 
-        <div class="card dashboard-card shadow-sm">
+        <div class="card dashboard-card h-100">
 
-            <div class="card-body">
+            <div class="card-body p-4">
 
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-start">
 
                     <div>
 
-                        <h6 class="text-muted">
-
+                        <p class="text-muted mb-2">
                             Total Orders
+                        </p>
 
-                        </h6>
-
-                        <h2 class="fw-bold">
-
+                        <h2 class="mb-0">
                             <?= $totalOrders ?>
-
                         </h2>
 
                     </div>
 
-                    <div>
+                    <div
+                        class="dashboard-icon"
+                        style="background:#fef3c7; color:#d97706;">
 
-                        <i class="fa-solid fa-cart-shopping fa-2x text-warning"></i>
+                        <i class="fa-solid fa-cart-shopping"></i>
 
                     </div>
 
                 </div>
 
-
                 <a
                     href="orders.php"
-                    class="btn btn-warning btn-sm mt-2">
+                    class="btn btn-warning btn-sm mt-4">
 
                     View Orders
 
+                    <i class="fa-solid fa-arrow-right ms-1"></i>
+
                 </a>
 
             </div>
@@ -371,47 +421,46 @@ include "includes/header.php";
     </div>
 
 
-  
+    <!-- PENDING ORDERS -->
 
     <div class="col-sm-6 col-xl-3">
 
-        <div class="card dashboard-card shadow-sm">
+        <div class="card dashboard-card h-100">
 
-            <div class="card-body">
+            <div class="card-body p-4">
 
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-start">
 
                     <div>
 
-                        <h6 class="text-muted">
-
+                        <p class="text-muted mb-2">
                             Pending Orders
+                        </p>
 
-                        </h6>
-
-                        <h2 class="fw-bold">
-
+                        <h2 class="mb-0">
                             <?= $pendingOrders ?>
-
                         </h2>
 
                     </div>
 
-                    <div>
+                    <div
+                        class="dashboard-icon"
+                        style="background:#fef3c7; color:#d97706;">
 
-                        <i class="fa-solid fa-clock fa-2x text-warning"></i>
+                        <i class="fa-solid fa-clock"></i>
 
                     </div>
 
                 </div>
-
 
                 <a
                     href="orders.php?status=Pending"
-                    class="btn btn-warning btn-sm mt-2">
+                    class="btn btn-warning btn-sm mt-4">
 
                     View Pending
 
+                    <i class="fa-solid fa-arrow-right ms-1"></i>
+
                 </a>
 
             </div>
@@ -421,46 +470,45 @@ include "includes/header.php";
     </div>
 
 
-   
+    <!-- COMPLETED ORDERS -->
 
     <div class="col-sm-6 col-xl-3">
 
-        <div class="card dashboard-card shadow-sm">
+        <div class="card dashboard-card h-100">
 
-            <div class="card-body">
+            <div class="card-body p-4">
 
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-start">
 
                     <div>
 
-                        <h6 class="text-muted">
-
+                        <p class="text-muted mb-2">
                             Completed Orders
+                        </p>
 
-                        </h6>
-
-                        <h2 class="fw-bold">
-
+                        <h2 class="mb-0">
                             <?= $completedOrders ?>
-
                         </h2>
 
                     </div>
 
-                    <div>
+                    <div
+                        class="dashboard-icon"
+                        style="background:#dcfce7; color:#16a34a;">
 
-                        <i class="fa-solid fa-circle-check fa-2x text-success"></i>
+                        <i class="fa-solid fa-circle-check"></i>
 
                     </div>
 
                 </div>
-
 
                 <a
                     href="orders.php?status=Delivered"
-                    class="btn btn-success btn-sm mt-2">
+                    class="btn btn-success btn-sm mt-4">
 
                     View Completed
+
+                    <i class="fa-solid fa-arrow-right ms-1"></i>
 
                 </a>
 
@@ -471,46 +519,48 @@ include "includes/header.php";
     </div>
 
 
-  
+    <!-- SALES -->
 
     <div class="col-sm-6 col-xl-3">
 
-        <div class="card dashboard-card shadow-sm">
+        <div class="card dashboard-card h-100">
 
-            <div class="card-body">
+            <div class="card-body p-4">
 
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-start">
 
                     <div>
 
-                        <h6 class="text-muted">
-
+                        <p class="text-muted mb-2">
                             Total Sales
+                        </p>
 
-                        </h6>
+                        <h2 class="mb-0 fs-4">
 
-                        <h2 class="fw-bold">
-
-                            Rs. <?= number_format($totalSales, 2) ?>
+                            Rs.
+                            <?= number_format($totalSales, 2) ?>
 
                         </h2>
 
                     </div>
 
-                    <div>
+                    <div
+                        class="dashboard-icon"
+                        style="background:#dcfce7; color:#16a34a;">
 
-                        <i class="fa-solid fa-money-bill-wave fa-2x text-success"></i>
+                        <i class="fa-solid fa-money-bill-wave"></i>
 
                     </div>
 
                 </div>
 
-
                 <a
                     href="orders.php"
-                    class="btn btn-success btn-sm mt-2">
+                    class="btn btn-success btn-sm mt-4">
 
                     View Sales
+
+                    <i class="fa-solid fa-arrow-right ms-1"></i>
 
                 </a>
 
@@ -520,6 +570,173 @@ include "includes/header.php";
 
     </div>
 
+
+</div>
+
+
+<!-- RECENT ORDERS -->
+
+<div class="card mt-4">
+
+    <div class="card-body p-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <div>
+
+                <h5 class="mb-1 fw-bold">
+
+                    <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>
+
+                    Recent Orders
+
+                </h5>
+
+                <small class="text-muted">
+                    Latest orders placed by customers
+                </small>
+
+            </div>
+
+            <a
+                href="orders.php"
+                class="btn btn-outline-primary btn-sm">
+
+                View All
+
+                <i class="fa-solid fa-arrow-right ms-1"></i>
+
+            </a>
+
+        </div>
+
+
+        <div class="table-responsive">
+
+            <table class="table align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Order ID</th>
+
+                        <th>Customer</th>
+
+                        <th>Total</th>
+
+                        <th>Status</th>
+
+                        <th>Date</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <?php if (mysqli_num_rows($recentOrdersResult) > 0) { ?>
+
+                        <?php while ($order = mysqli_fetch_assoc($recentOrdersResult)) { ?>
+
+                            <tr>
+
+                                <td>
+
+                                    <strong>
+                                        #<?= $order['id'] ?>
+                                    </strong>
+
+                                </td>
+
+                                <td>
+
+                                    <?= htmlspecialchars($order['customer_name']) ?>
+
+                                </td>
+
+                                <td>
+
+                                    <strong>
+                                        Rs. <?= number_format($order['total'], 2) ?>
+                                    </strong>
+
+                                </td>
+
+                                <td>
+
+                                    <?php
+
+                                    $status = $order['status'];
+
+                                    if ($status == 'Pending') {
+
+                                        $badgeClass = 'bg-warning text-dark';
+
+                                    } elseif ($status == 'Delivered') {
+
+                                        $badgeClass = 'bg-success';
+
+                                    } elseif ($status == 'Cancelled') {
+
+                                        $badgeClass = 'bg-danger';
+
+                                    } else {
+
+                                        $badgeClass = 'bg-primary';
+
+                                    }
+
+                                    ?>
+
+                                    <span class="badge <?= $badgeClass ?> status-badge">
+
+                                        <?= htmlspecialchars($status) ?>
+
+                                    </span>
+
+                                </td>
+
+                                <td>
+
+                                    <?= date(
+                                        'd M Y',
+                                        strtotime($order['created_at'])
+                                    ) ?>
+
+                                </td>
+
+                            </tr>
+
+                        <?php } ?>
+
+                    <?php } else { ?>
+
+                        <tr>
+
+                            <td
+                                colspan="5"
+                                class="text-center text-muted py-4">
+
+                                <i class="fa-solid fa-box-open fa-2x mb-2"></i>
+
+                                <br>
+
+                                No orders found.
+
+                            </td>
+
+                        </tr>
+
+                    <?php } ?>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
 
 </div>
 

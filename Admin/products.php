@@ -216,36 +216,43 @@ if ($search !== "") {
 
 ?>
 
-
 <?php include "includes/header.php"; ?>
 
+<!-- PAGE HEADER -->
 
+<div class="page-header">
 
-<div class="page-header mb-4">
-
-    <div
-        class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
         <div>
 
             <h2 class="page-title">
 
-                <i class="fa-solid fa-box-open me-2"></i>
+                <i class="fa-solid fa-box-open text-primary me-2"></i>
 
                 Product Management
 
             </h2>
 
-            <p class="text-muted mb-0 mt-1">
+            <p class="text-muted mb-0 mt-2">
 
-                Manage products, prices, stock and status.
+                Manage products, prices, stock and availability.
 
             </p>
 
         </div>
 
+        <div class="d-flex gap-2 flex-wrap">
 
-        <div>
+            <a
+                href="stock.php"
+                class="btn btn-outline-warning">
+
+                <i class="fa-solid fa-boxes-stacked me-1"></i>
+
+                Stock
+
+            </a>
 
             <a
                 href="product-add.php"
@@ -253,18 +260,7 @@ if ($search !== "") {
 
                 <i class="fa-solid fa-plus me-1"></i>
 
-                Add New Product
-
-            </a>
-
-
-            <a
-                href="stock.php"
-                class="btn btn-warning">
-
-                <i class="fa-solid fa-boxes-stacked me-1"></i>
-
-                Stock Management
+                Add Product
 
             </a>
 
@@ -275,7 +271,7 @@ if ($search !== "") {
 </div>
 
 
-
+<!-- SUCCESS MESSAGE -->
 
 <?php if (
     isset($_GET['message']) &&
@@ -301,43 +297,65 @@ if ($search !== "") {
 <?php endif; ?>
 
 
+<!-- PRODUCTS CARD -->
 
-<div class="card product-card shadow-sm">
+<div class="card product-card">
 
-    <div class="card-body">
+    <div class="card-body p-4">
 
 
-       
+        <!-- CARD HEADER -->
 
         <div
             class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
 
-            <h5 class="mb-0">
+            <div>
 
-                All Products
+                <h5 class="fw-bold mb-1">
 
-            </h5>
+                    All Products
 
+                </h5>
+
+                <small class="text-muted">
+
+                    View and manage your store products
+
+                </small>
+
+            </div>
+
+
+            <!-- SEARCH -->
 
             <form
                 method="POST"
                 class="d-flex search-box">
 
-                <input
-                    type="text"
-                    name="search"
-                    class="form-control me-2"
-                    placeholder="Search product or category..."
-                    value="<?= htmlspecialchars($search) ?>">
+                <div class="input-group">
 
+                    <span class="input-group-text bg-white">
 
-                <button
-                    type="submit"
-                    class="btn btn-dark">
+                        <i class="fa-solid fa-magnifying-glass text-muted"></i>
 
-                    <i class="fa-solid fa-search"></i>
+                    </span>
 
-                </button>
+                    <input
+                        type="text"
+                        name="search"
+                        class="form-control border-start-0"
+                        placeholder="Search product or category..."
+                        value="<?= htmlspecialchars($search) ?>">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary">
+
+                        Search
+
+                    </button>
+
+                </div>
 
 
                 <?php if ($search !== ""): ?>
@@ -357,7 +375,26 @@ if ($search !== "") {
         </div>
 
 
-      
+        <!-- SEARCH RESULT -->
+
+        <?php if ($search !== ""): ?>
+
+            <div class="alert alert-info py-2">
+
+                <i class="fa-solid fa-filter me-2"></i>
+
+                Showing results for:
+
+                <strong>
+                    <?= htmlspecialchars($search) ?>
+                </strong>
+
+            </div>
+
+        <?php endif; ?>
+
+
+        <!-- TABLE -->
 
         <div class="table-responsive">
 
@@ -369,9 +406,7 @@ if ($search !== "") {
 
                         <th>ID</th>
 
-                        <th>Image</th>
-
-                        <th>Product Name</th>
+                        <th>Product</th>
 
                         <th>Category</th>
 
@@ -381,7 +416,7 @@ if ($search !== "") {
 
                         <th>Status</th>
 
-                        <th>Actions</th>
+                        <th class="text-center">Actions</th>
 
                     </tr>
 
@@ -391,27 +426,34 @@ if ($search !== "") {
                 <tbody>
 
 
-                    <?php if (mysqli_num_rows($result) > 0): ?>
+                <?php if (mysqli_num_rows($result) > 0): ?>
 
 
-                        <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                    <?php while ($row = mysqli_fetch_assoc($result)): ?>
 
 
-                            <tr>
+                        <tr>
 
 
-                              
+                            <!-- ID -->
 
-                                <td>
+                            <td>
 
-                                    <?= $row['id'] ?>
+                                <span class="text-muted fw-semibold">
 
-                                </td>
+                                    #<?= $row['id'] ?>
+
+                                </span>
+
+                            </td>
 
 
-                                
+                            <!-- PRODUCT -->
 
-                                <td>
+                            <td>
+
+                                <div class="d-flex align-items-center gap-3">
+
 
                                     <?php
 
@@ -435,278 +477,293 @@ if ($search !== "") {
 
                                         <div class="no-image">
 
-                                            No Image
+                                            <i class="fa-solid fa-image"></i>
 
                                         </div>
 
                                     <?php endif; ?>
 
-                                </td>
+
+                                    <div>
+
+                                        <div class="fw-semibold">
+
+                                            <?= htmlspecialchars(
+                                                $row['name']
+                                            ) ?>
+
+                                        </div>
+
+                                        <small class="text-muted">
+
+                                            Product #<?= $row['id'] ?>
+
+                                        </small>
+
+                                    </div>
 
 
-                           
+                                </div>
 
-                                <td>
-
-                                    <strong>
-
-                                        <?= htmlspecialchars(
-                                            $row['name']
-                                        ) ?>
-
-                                    </strong>
-
-                                </td>
+                            </td>
 
 
-                           
+                            <!-- CATEGORY -->
 
-                                <td>
+                            <td>
 
-                                    <span class="badge bg-info p-2">
+                                <span class="badge bg-info text-dark status-badge">
 
-                                        <?= htmlspecialchars(
-                                            $row['category_name']
-                                        ) ?>
+                                    <?= htmlspecialchars(
+                                        $row['category_name']
+                                    ) ?>
 
-                                    </span>
+                                </span>
 
-                                </td>
-
-
-
-                                <td>
-
-                                    <strong>
-
-                                        Rs.
-                                        <?= number_format(
-                                            $row['price'],
-                                            2
-                                        ) ?>
-
-                                    </strong>
-
-                                </td>
+                            </td>
 
 
-                              
+                            <!-- PRICE -->
 
-                                <td>
+                            <td>
 
-                                    <?php if (
-                                        $row['stock_quantity'] > 0
-                                    ): ?>
+                                <strong>
 
-                                        <span
-                                            class="text-success fw-semibold">
+                                    Rs.
+                                    <?= number_format(
+                                        $row['price'],
+                                        2
+                                    ) ?>
+
+                                </strong>
+
+                            </td>
+
+
+                            <!-- STOCK -->
+
+                            <td>
+
+                                <?php if ($row['stock_quantity'] > 0): ?>
+
+                                    <?php if ($row['stock_quantity'] <= 5): ?>
+
+                                        <span class="badge bg-warning text-dark status-badge">
+
+                                            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+
+                                            <?= $row['stock_quantity'] ?>
+
+                                            Low Stock
+
+                                        </span>
+
+                                    <?php else: ?>
+
+                                        <span class="text-success fw-semibold">
+
+                                            <i class="fa-solid fa-check me-1"></i>
 
                                             <?= $row['stock_quantity'] ?>
 
                                         </span>
 
-                                    <?php else: ?>
-
-                                        <span
-                                            class="text-danger fw-semibold">
-
-                                            Out of Stock
-
-                                        </span>
-
                                     <?php endif; ?>
 
-                                </td>
+                                <?php else: ?>
 
+                                    <span class="badge bg-danger status-badge">
 
-                                
+                                        Out of Stock
 
-                                <td>
-
-                                    <?php if (
-                                        $row['status'] === 'Active'
-                                    ): ?>
-
-                                        <span
-                                            class="badge bg-success status-badge">
-
-                                            Active
-
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span
-                                            class="badge bg-danger status-badge">
-
-                                            Inactive
-
-                                        </span>
-
-                                    <?php endif; ?>
-
-                                </td>
-
-
-                            
-
-                                <td class="action-buttons">
-
-
-                                   
-
-                                    <a
-                                        href="product-edit.php?id=<?= $row['id'] ?>"
-                                        class="btn btn-sm btn-outline-primary"
-                                        title="Edit Product">
-
-                                        <i class="fa-solid fa-pen"></i>
-
-                                    </a>
-
-
-                                    
-
-                                    <?php if (
-                                        $row['status'] === 'Active'
-                                    ): ?>
-
-
-                                      
-
-                                        <form
-                                            method="POST"
-                                            class="d-inline"
-                                            onsubmit="return confirm('Are you sure you want to deactivate this product?');">
-
-
-                                            <input
-                                                type="hidden"
-                                                name="toggle_status"
-                                                value="<?= $row['id'] ?>">
-
-
-                                            <input
-                                                type="hidden"
-                                                name="search"
-                                                value="<?= htmlspecialchars($search) ?>">
-
-
-                                            <button
-                                                type="submit"
-                                                class="btn btn-sm btn-outline-danger"
-                                                title="Deactivate Product">
-
-                                                <i class="fa-solid fa-ban"></i>
-
-                                            </button>
-
-                                        </form>
-
-
-                                    <?php else: ?>
-
-
-                                    
-
-                                        <form
-                                            method="POST"
-                                            class="d-inline"
-                                            onsubmit="return confirm('Are you sure you want to activate this product?');">
-
-
-                                            <input
-                                                type="hidden"
-                                                name="toggle_status"
-                                                value="<?= $row['id'] ?>">
-
-
-                                            <input
-                                                type="hidden"
-                                                name="search"
-                                                value="<?= htmlspecialchars($search) ?>">
-
-
-                                            <button
-                                                type="submit"
-                                                class="btn btn-sm btn-outline-success"
-                                                title="Activate Product">
-
-                                                <i class="fa-solid fa-check"></i>
-
-                                            </button>
-
-                                        </form>
-
-                                    <?php endif; ?>
-
-
-                                </td>
-
-                            </tr>
-
-
-                        <?php endwhile; ?>
-
-
-                    <?php else: ?>
-
-
-                        <tr>
-
-                            <td
-                                colspan="8"
-                                class="text-center py-5">
-
-                                <i
-                                    class="fa-solid fa-box-open fa-3x text-muted mb-3">
-                                </i>
-
-
-                                <h5>
-
-                                    No Products Found
-
-                                </h5>
-
-
-                                <p class="text-muted">
-
-                                    <?php if ($search !== ""): ?>
-
-                                        No products match your search.
-
-                                    <?php else: ?>
-
-                                        No products have been added yet.
-
-                                    <?php endif; ?>
-
-                                </p>
-
-
-                                <?php if ($search === ""): ?>
-
-                                    <a
-                                        href="product-add.php"
-                                        class="btn btn-primary">
-
-                                        <i
-                                            class="fa-solid fa-plus me-1">
-                                        </i>
-
-                                        Add First Product
-
-                                    </a>
+                                    </span>
 
                                 <?php endif; ?>
+
+                            </td>
+
+
+                            <!-- STATUS -->
+
+                            <td>
+
+                                <?php if (
+                                    $row['status'] === 'Active'
+                                ): ?>
+
+                                    <span
+                                        class="badge bg-success status-badge">
+
+                                        <i class="fa-solid fa-circle-check me-1"></i>
+
+                                        Active
+
+                                    </span>
+
+                                <?php else: ?>
+
+                                    <span
+                                        class="badge bg-danger status-badge">
+
+                                        <i class="fa-solid fa-circle-xmark me-1"></i>
+
+                                        Inactive
+
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </td>
+
+
+                            <!-- ACTIONS -->
+
+                            <td class="text-center action-buttons">
+
+
+                                <!-- EDIT -->
+
+                                <a
+                                    href="product-edit.php?id=<?= $row['id'] ?>"
+                                    class="btn btn-sm btn-outline-primary"
+                                    title="Edit Product">
+
+                                    <i class="fa-solid fa-pen"></i>
+
+                                </a>
+
+
+                                <!-- STATUS -->
+
+                                <?php if (
+                                    $row['status'] === 'Active'
+                                ): ?>
+
+                                    <form
+                                        method="POST"
+                                        class="d-inline"
+                                        onsubmit="return confirm('Are you sure you want to deactivate this product?');">
+
+                                        <input
+                                            type="hidden"
+                                            name="toggle_status"
+                                            value="<?= $row['id'] ?>">
+
+                                        <input
+                                            type="hidden"
+                                            name="search"
+                                            value="<?= htmlspecialchars($search) ?>">
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Deactivate Product">
+
+                                            <i class="fa-solid fa-trash"></i>
+
+                                        </button>
+
+                                    </form>
+
+                                <?php else: ?>
+
+                                    <form
+                                        method="POST"
+                                        class="d-inline"
+                                        onsubmit="return confirm('Are you sure you want to activate this product?');">
+
+                                        <input
+                                            type="hidden"
+                                            name="toggle_status"
+                                            value="<?= $row['id'] ?>">
+
+                                        <input
+                                            type="hidden"
+                                            name="search"
+                                            value="<?= htmlspecialchars($search) ?>">
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm btn-outline-success"
+                                            title="Activate Product">
+
+                                            <i class="fa-solid fa-check"></i>
+
+                                        </button>
+
+                                    </form>
+
+                                <?php endif; ?>
+
 
                             </td>
 
                         </tr>
 
 
-                    <?php endif; ?>
+                    <?php endwhile; ?>
+
+
+                <?php else: ?>
+
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="text-center py-5">
+
+                            <div class="mb-3">
+
+                                <i
+                                    class="fa-solid fa-box-open fa-3x text-muted">
+                                </i>
+
+                            </div>
+
+                            <h5 class="fw-bold">
+
+                                No Products Found
+
+                            </h5>
+
+                            <p class="text-muted">
+
+                                <?php if ($search !== ""): ?>
+
+                                    No products match your search.
+
+                                <?php else: ?>
+
+                                    No products have been added yet.
+
+                                <?php endif; ?>
+
+                            </p>
+
+
+                            <?php if ($search === ""): ?>
+
+                                <a
+                                    href="product-add.php"
+                                    class="btn btn-primary">
+
+                                    <i
+                                        class="fa-solid fa-plus me-1">
+                                    </i>
+
+                                    Add First Product
+
+                                </a>
+
+                            <?php endif; ?>
+
+                        </td>
+
+                    </tr>
+
+
+                <?php endif; ?>
 
 
                 </tbody>

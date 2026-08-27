@@ -7,13 +7,21 @@ $username = "root";
 $password = "";
 $database = "ecommerce";
 
-$connect = mysqli_connect($host, $username, $password, $database);
+$connect = mysqli_connect(
+    $host,
+    $username,
+    $password,
+    $database
+);
 
 if (!$connect) {
     die("Database Connection Failed: " . mysqli_connect_error());
 }
 
 
+/* =========================
+   ADMIN AUTHENTICATION
+========================= */
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: login.php");
@@ -21,17 +29,9 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 
-
-$categoryQuery = "SELECT id,name 
-                  FROM categories 
-                  WHERE status = 'Active' 
-                  ORDER BY name ASC";
-
-$categoryResult = mysqli_query($connect, $categoryQuery);
-
-if (!$categoryResult) {
-    die("Category Query Failed: " . mysqli_error($connect));
-}
+/* =========================
+   ERROR VARIABLES
+========================= */
 
 $productNameErr = "";
 $categoryErr = "";
@@ -43,96 +43,278 @@ $statusErr = "";
 $success = "";
 
 
+/* =========================
+   FORM VALUES
+   These variables preserve
+   entered data after errors.
+========================= */
+
+$productName = "";
+$categoryId = "";
+$description = "";
+$price = "";
+$stockQuantity = "";
+$status = "";
+
+
+/* =========================
+   FETCH ACTIVE CATEGORIES
+========================= */
+
+$categoryQuery = "
+    SELECT id, name
+    FROM categories
+    WHERE status = 'Active'
+    ORDER BY name ASC
+";
+
+$categoryResult = mysqli_query(
+    $connect,
+    $categoryQuery
+);
+
+if (!$categoryResult) {
+    die("Category Query Failed: " . mysqli_error($connect));
+}
+
+
+/* =========================
+   FORM SUBMISSION
+========================= */
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-   
+    /* =========================
+       GET FORM DATA
+    ========================= */
+
     $productName = trim($_POST['product_name'] ?? "");
     $categoryId = $_POST['category_id'] ?? "";
     $description = trim($_POST['description'] ?? "");
-    $price = $_POST['price'] ?? "";
-    $stockQuantity = $_POST['stock_quantity'] ?? "";
+    $price = trim($_POST['price'] ?? "");
+    $stockQuantity = trim($_POST['stock_quantity'] ?? "");
     $status = $_POST['status'] ?? "";
 
 
-   
+    /* =========================
+       PRODUCT NAME VALIDATION
+    ========================= */
+
     if ($productName === "") {
+
         $productNameErr = "Product name is required.";
+
+    } elseif (strlen($productName) > 100) {
+
+        $productNameErr = "Product name cannot exceed 100 characters.";
+
     }
 
 
+    /* =========================
+       CATEGORY VALIDATION
+    ========================= */
 
     if ($categoryId === "") {
+
         $categoryErr = "Please select a category.";
-    }
 
+    } elseif (!ctype_digit((string)$categoryId)) {
 
-    
-    if ($price === "") {
-        $priceErr = "Price is required.";
-    } elseif (!is_numeric($price) || $price <= 0) {
-        $priceErr = "Price must be greater than 0.";
-    }
+        $categoryErr = "Invalid category.";
 
-
-    
-    if ($stockQuantity === "") {
-        $stockErr = "Stock quantity is required.";
-    } elseif (!is_numeric($stockQuantity) || $stockQuantity < 0) {
-        $stockErr = "Stock cannot be negative.";
-    }
-
-
-   
-    if ($status === "") {
-        $statusErr = "Please select a status.";
-    } elseif ($status !== "Active" && $status !== "Inactive") {
-        $statusErr = "Invalid status.";
-    }
-
-
-   
-    $target_dir = "../Images/";
-    $target_file = "";
-
-    if (!isset($_FILES["product_image"]) || $_FILES["product_image"]["error"] === UPLOAD_ERR_NO_FILE) {
-
-        $imageErr = "Please choose a product image.";
-    } elseif ($_FILES["product_image"]["error"] !== UPLOAD_ERR_OK) {
-
-        $imageErr = "There was an error uploading the image.";
     } else {
 
-        $maxsize = 2 * 1024 * 1024;
+        $categoryCheckQuery = "
+            SELECT id
+            FROM categories
+            WHERE id = ?
+            AND status = 'Active'
+            LIMIT 1
+        ";
 
-        $imageFileType = strtolower(
-            pathinfo($_FILES["product_image"]["name"], PATHINFO_EXTENSION)
+        $categoryStmt = mysqli_prepare(
+            $connect,
+            $categoryCheckQuery
         );
 
-        $getImage = getimagesize($_FILES["product_image"]["tmp_name"]);
+        mysqli_stmt_bind_param(
+            $categoryStmt,
+            "i",
+            $categoryId
+        );
+
+        mysqli_stmt_execute($categoryStmt);
+
+        $categoryCheckResult = mysqli_stmt_get_result(
+            $categoryStmt
+        );
+
+        if (mysqli_num_rows($categoryCheckResult) !== 1) {
+
+            $categoryErr = "Selected category is invalid.";
+
+        }
+
+        mysqli_stmt_close($categoryStmt);
+    }
+
+
+    /* =========================
+       PRICE VALIDATION
+    ========================= */
+
+    if ($price === "") {
+
+        $priceErr = "Price is required.";
+
+    } elseif (!is_numeric($price)) {
+
+        $priceErr = "Price must be a valid number.";
+
+    } elseif ($price <= 0) {
+
+        $priceErr = "Price must be greater than 0.";
+
+    }
+
+
+    /* =========================
+       STOCK VALIDATION
+    ========================= */
+
+    if ($stockQuantity === "") {
+
+        $stockErr = "Stock quantity is required.";
+
+    } elseif (!ctype_digit($stockQuantity)) {
+
+        $stockErr = "Stock quantity must be a whole number.";
+
+    } elseif ((int)$stockQuantity < 0) {
+
+        $stockErr = "Stock cannot be negative.";
+
+    }
+
+
+    /* =========================
+       STATUS VALIDATION
+    ========================= */
+
+    if ($status === "") {
+
+        $statusErr = "Please select a status.";
+
+    } elseif (
+        $status !== "Active" &&
+        $status !== "Inactive"
+    ) {
+
+        $statusErr = "Invalid status.";
+
+    }
+
+
+    /* =========================
+       IMAGE VALIDATION
+    ========================= */
+
+    $targetDirectory = "../Images/";
+    $imagePath = "";
+
+    if (
+        !isset($_FILES["product_image"]) ||
+        $_FILES["product_image"]["error"] === UPLOAD_ERR_NO_FILE
+    ) {
+
+        $imageErr = "Please choose a product image.";
+
+    } elseif (
+        $_FILES["product_image"]["error"] !== UPLOAD_ERR_OK
+    ) {
+
+        $imageErr = "There was an error uploading the image.";
+
+    } else {
+
+        $maxSize = 500 * 1024;
+
+        $imageName = $_FILES["product_image"]["name"];
+        $imageTmpName = $_FILES["product_image"]["tmp_name"];
+        $imageSize = $_FILES["product_image"]["size"];
+
+        $imageFileType = strtolower(
+            pathinfo(
+                $imageName,
+                PATHINFO_EXTENSION
+            )
+        );
+
+
+        /* Check real image */
+
+        $getImage = getimagesize(
+            $imageTmpName
+        );
+
 
         if ($getImage === false) {
 
             $imageErr = "File is not a valid image.";
-        } elseif ($_FILES["product_image"]["size"] > $maxsize) {
 
-            $imageErr = "File must be less than 2 MB.";
+        } elseif ($imageSize > $maxSize) {
+
+            $imageErr = "Image size must not exceed 500 KB.";
+
         } elseif (
             $imageFileType !== "jpg" &&
             $imageFileType !== "jpeg" &&
-            $imageFileType !== "png" &&
-            $imageFileType !== "gif"
+            $imageFileType !== "png"
         ) {
 
-            $imageErr = "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
+            $imageErr =
+                "Only JPG, JPEG and PNG images are allowed.";
+
         } else {
 
-            $filename = uniqid() . "." . $imageFileType;
-            $target_file = $target_dir . $filename;
+            /*
+             * Create a unique filename.
+             */
+
+            $newFileName =
+                uniqid("product_", true) .
+                "." .
+                $imageFileType;
+
+
+            /*
+             * Physical location where
+             * the image will be uploaded.
+             */
+
+            $targetFile =
+                $targetDirectory .
+                $newFileName;
+
+
+            /*
+             * Path stored in database.
+             * This path can be used by
+             * customer pages.
+             */
+
+            $imagePath =
+                "Images/" .
+                $newFileName;
         }
     }
 
 
-   
+    /* =========================
+       INSERT PRODUCT
+    ========================= */
+
     if (
         $productNameErr === "" &&
         $categoryErr === "" &&
@@ -141,377 +323,547 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $imageErr === "" &&
         $statusErr === ""
     ) {
-        if (move_uploaded_file($_FILES["product_image"]["tmp_name"], $target_file)) {
-            $product_image = $target_file;
+
+        /*
+         * Upload image first.
+         */
+
+        if (
+            move_uploaded_file(
+                $_FILES["product_image"]["tmp_name"],
+                $targetFile
+            )
+        ) {
+
+            $insertQuery = "
+                INSERT INTO products
+                (
+                    category_id,
+                    name,
+                    description,
+                    price,
+                    stock_quantity,
+                    image,
+                    status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ";
+
+
+            $stmt = mysqli_prepare(
+                $connect,
+                $insertQuery
+            );
+
+
+            if ($stmt) {
+
+                $categoryId = (int)$categoryId;
+                $price = (float)$price;
+                $stockQuantity = (int)$stockQuantity;
+
+
+                mysqli_stmt_bind_param(
+                    $stmt,
+                    "issdiss",
+                    $categoryId,
+                    $productName,
+                    $description,
+                    $price,
+                    $stockQuantity,
+                    $imagePath,
+                    $status
+                );
+
+
+                if (mysqli_stmt_execute($stmt)) {
+
+                    $success =
+                        "Product added successfully.";
+
+
+                    /*
+                     * Clear form after
+                     * successful insertion.
+                     */
+
+                    $productName = "";
+                    $categoryId = "";
+                    $description = "";
+                    $price = "";
+                    $stockQuantity = "";
+                    $status = "";
+
+
+                } else {
+
+                    /*
+                     * If database insertion
+                     * fails, delete the uploaded
+                     * image so there is no
+                     * unnecessary file.
+                     */
+
+                    if (file_exists($targetFile)) {
+                        unlink($targetFile);
+                    }
+
+                    $success =
+                        "Failed to add product. Please try again.";
+                }
+
+
+                mysqli_stmt_close($stmt);
+
+
+            } else {
+
+                /*
+                 * Delete uploaded image
+                 * if statement preparation fails.
+                 */
+
+                if (file_exists($targetFile)) {
+                    unlink($targetFile);
+                }
+
+                $success =
+                    "Something went wrong. Please try again.";
+            }
+
+
         } else {
-            $imageErr = "File upload failed.";
+
+            $imageErr =
+                "File upload failed.";
         }
-       
-        $query = "INSERT INTO products
-                      (category_id, name, description, price,
-                       stock_quantity, image, status)
-                      VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-        $stmt = mysqli_prepare($connect, $query);
-
-        mysqli_stmt_bind_param(
-            $stmt,
-            "issdiss",
-            $categoryId,
-            $productName,
-            $description,
-            $price,
-            $stockQuantity,
-            $target_file,
-            $status
-        );
-
-
-        if (mysqli_stmt_execute($stmt)) {
-
-            $success = "Product added successfully.";
-        } else {
-
-            $success = "Failed to add product.";
-        }
-
-
-        mysqli_stmt_close($stmt);
-    } else {
-
-        $imageErr = "Failed to save the uploaded image.";
     }
 }
 
+
+include "includes/header.php";
+
 ?>
 
-<!doctype html>
-<html lang="en" data-bs-theme="light">
 
-<head>
-    <title>Add the Product</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- =========================
+     PAGE HEADER
+========================= -->
 
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
-        crossorigin="anonymous" />
-    <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-</head>
+<div class="page-header">
 
-<body>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
+        <div>
 
+            <h2 class="page-title">
 
-    <div class="container py-5">
+                <i class="fa-solid fa-circle-plus text-primary me-2"></i>
 
-        <div class="row justify-content-center">
+                Add New Product
 
-            <div class="col-lg-9 col-xl-8">
+            </h2>
 
-                
-                <div class="mb-4">
-                    <h2 class="fw-bold mb-1">
-                        <i class="bi bi-box-seam"></i>
-                        Add New Product
-                    </h2>
+            <p class="text-muted mb-0 mt-2">
 
-                    <p class="text-muted mb-0">
-                        Add a new product to your store inventory.
-                    </p>
-                </div>
+                Add a new product to your store inventory.
 
-
-                
-                <div class="card border-3  shadow-sm">
-
-                   
-                    <div class="card-header bg-white border-0 py-3">
-                        <h5 class="mb-0 ">
-                            <b>Product Information</b>
-                        </h5>
-                    </div>
-
-
-                    <div class="card-body p-4">
-
-                        <?php if ($success !== "") { ?>
-
-                            <div class="alert alert-success">
-                                <?= htmlspecialchars($success) ?>
-                            </div>
-
-                        <?php } ?>
-
-                        <form method="POST"
-                            enctype="multipart/form-data">
-
-
-                            <div class="mb-4">
-
-                                <label class="form-label fw-semibold">
-                                    Product Name
-
-                                </label>
-
-                                <input
-                                    type="text"
-                                    name="product_name"
-                                    class="form-control "
-                                    placeholder="Enter product name">
-
-                                <?php if ($productNameErr !== "") { ?>
-                                    <div class="text-danger small mt-1">
-                                        <?= htmlspecialchars($productNameErr) ?>
-                                    </div>
-                                <?php } ?>
-
-                            </div>
-
-
-
-
-                         
-                            <div class="mb-4">
-
-                                <label class="form-label fw-semibold">
-                                    Category
-
-                                </label>
-
-                                <select
-                                    name="category_id"
-                                    class="form-select ">
-
-                                    <option value="">
-                                        Select Category
-                                    </option>
-
-                                    <?php while ($category = mysqli_fetch_assoc($categoryResult)) { ?>
-
-                                        <option value="<?= $category['id'] ?>">
-                                            <?= htmlspecialchars($category['name']) ?>
-                                        </option>
-
-                                    <?php } ?>
-
-                                </select>
-
-                                <?php if ($categoryErr !== "") { ?>
-                                    <div class="text-danger small mt-1">
-                                        <?= htmlspecialchars($categoryErr) ?>
-                                    </div>
-                                <?php } ?>
-                            </div>
-
-
-
-
-                           
-                            <div class="mb-4">
-
-                                <label class="form-label fw-semibold">
-                                    Description
-                                </label>
-
-                                <textarea
-                                    name="description"
-                                    class="form-control"
-                                    rows="4"
-                                    placeholder="Enter product description"></textarea>
-
-                            </div>
-
-
-
-
-                            
-                            <div class="row">
-
-                              
-                                <div class="col-md-6 mb-4">
-
-                                    <label class="form-label fw-semibold">
-                                        Price
-                                    </label>
-
-                                    <div class="input-group">
-
-                                        <span class="input-group-text">
-                                            Rs.
-                                        </span>
-
-                                        <input
-                                            type="number"
-                                            name="price"
-                                            class="form-control"
-                                            placeholder="0.00">
-
-                                    </div>
-
-                                    <?php if ($priceErr !== "") { ?>
-                                        <div class="text-danger small mt-1">
-                                            <?= htmlspecialchars($priceErr) ?>
-                                        </div>
-                                    <?php } ?>
-                                </div>
-
-
-
-
-                               
-                                <div class="col-md-6 mb-4">
-
-                                    <label class="form-label fw-semibold">
-                                        Stock Quantity
-                                    </label>
-
-                                    <input
-                                        type="number"
-                                        name="stock_quantity"
-                                        class="form-control "
-                                        placeholder="Enter quantity">
-
-                                    <?php if ($stockErr !== "") { ?>
-                                        <div class="text-danger small mt-1">
-                                            <?= htmlspecialchars($stockErr) ?>
-                                        </div>
-                                    <?php } ?>
-                                </div>
-
-
-
-                            </div>
-
-
-                          
-                            <div class="mb-4">
-
-                                <label class="form-label fw-semibold">
-                                    Product Image
-                                </label>
-
-                                <input
-                                    type="file"
-                                    name="product_image"
-                                    id="product_image"
-                                    class="form-control"
-                                    accept="image/*">
-
-                                <?php if ($imageErr !== "") { ?>
-                                    <div class="text-danger small mt-1">
-                                        <?= htmlspecialchars($imageErr) ?>
-                                    </div>
-                                <?php } ?>
-                            </div>
-
-
-
-                         
-                            <div class="mb-4">
-
-                                <label class="form-label fw-semibold">
-                                    Status
-                                </label>
-
-                                <select
-                                    name="status"
-                                    class="form-select">
-
-                                    <option value="">
-                                        Select Status
-                                    </option>
-
-                                    <option value="Active">
-                                        Active
-                                    </option>
-
-                                    <option value="Inactive">
-                                        Inactive
-                                    </option>
-
-                                </select>
-
-
-                                <?php if ($statusErr !== "") { ?>
-                                    <div class="text-danger small mt-1">
-                                        <?= htmlspecialchars($statusErr) ?>
-                                    </div>
-                                <?php } ?>
-
-                            </div>
-
-
-
-
-
-
-
-                        
-                            <div class="d-flex justify-content-end gap-2">
-
-                                <a
-                                    href="products.php"
-                                    class="btn btn-outline-secondary border px-4">
-
-                                    Back to Products
-
-                                </a>
-
-
-                                <button
-                                    type="submit"
-                                    name="save_product"
-                                    class="btn btn-outline-success px-4">
-
-                                    Save Product
-
-                                </button>
-
-                            </div>
-
-
-                        </form>
-
-                    </div>
-
-                </div>
-
-
-
-
-            </div>
+            </p>
 
         </div>
 
+
+        <a
+            href="products.php"
+            class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-arrow-left me-1"></i>
+
+            Back to Products
+
+        </a>
+
     </div>
 
+</div>
 
 
+<!-- =========================
+     SUCCESS MESSAGE
+========================= -->
+
+<?php if ($success !== ""): ?>
+
+    <div
+        class="alert alert-success alert-dismissible fade show"
+        role="alert">
+
+        <i class="fa-solid fa-circle-check me-2"></i>
+
+        <?= htmlspecialchars($success) ?>
+
+        <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert">
+        </button>
+
+    </div>
+
+<?php endif; ?>
 
 
+<!-- =========================
+     PRODUCT FORM
+========================= -->
+
+<div class="card">
+
+    <div class="card-body p-4 p-md-5">
+
+        <div class="mb-4">
+
+            <h5 class="fw-bold mb-1">
+
+                <i class="fa-solid fa-box-open text-primary me-2"></i>
+
+                Product Information
+
+            </h5>
+
+            <p class="text-muted mb-0">
+
+                Enter the details of the new product below.
+
+            </p>
+
+        </div>
 
 
+        <form
+            method="POST"
+            action=""
+            enctype="multipart/form-data">
 
 
+            <!-- PRODUCT NAME -->
+
+            <div class="mb-4">
+
+                <label class="form-label">
+
+                    Product Name
+
+                </label>
+
+                <input
+                    type="text"
+                    name="product_name"
+                    class="form-control"
+                    placeholder="Enter product name"
+                    value="<?= htmlspecialchars($productName) ?>">
+
+                <?php if ($productNameErr !== ""): ?>
+
+                    <div class="text-danger small mt-1">
+
+                        <i class="fa-solid fa-circle-exclamation me-1"></i>
+
+                        <?= htmlspecialchars($productNameErr) ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+            </div>
 
 
+            <!-- CATEGORY -->
+
+            <div class="mb-4">
+
+                <label class="form-label">
+
+                    Category
+
+                </label>
+
+                <select
+                    name="category_id"
+                    class="form-select">
+
+                    <option value="">
+                        Select Category
+                    </option>
+
+                    <?php while (
+                        $category = mysqli_fetch_assoc($categoryResult)
+                    ): ?>
+
+                        <option
+                            value="<?= htmlspecialchars($category['id']) ?>"
+                            <?= (
+                                (string)$categoryId ===
+                                (string)$category['id']
+                            ) ? 'selected' : '' ?>>
+
+                            <?= htmlspecialchars(
+                                $category['name']
+                            ) ?>
+
+                        </option>
+
+                    <?php endwhile; ?>
+
+                </select>
+
+                <?php if ($categoryErr !== ""): ?>
+
+                    <div class="text-danger small mt-1">
+
+                        <i class="fa-solid fa-circle-exclamation me-1"></i>
+
+                        <?= htmlspecialchars($categoryErr) ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+            </div>
 
 
+            <!-- DESCRIPTION -->
+
+            <div class="mb-4">
+
+                <label class="form-label">
+
+                    Description
+
+                </label>
+
+                <textarea
+                    name="description"
+                    class="form-control"
+                    rows="5"
+                    placeholder="Enter product description"><?= htmlspecialchars($description) ?></textarea>
+
+            </div>
 
 
+            <!-- PRICE + STOCK -->
+
+            <div class="row">
+
+                <div class="col-md-6 mb-4">
+
+                    <label class="form-label">
+
+                        Price
+
+                    </label>
+
+                    <div class="input-group">
+
+                        <span class="input-group-text">
+
+                            Rs.
+
+                        </span>
+
+                        <input
+                            type="number"
+                            name="price"
+                            step="0.01"
+                            min="0"
+                            class="form-control"
+                            placeholder="0.00"
+                            value="<?= htmlspecialchars($price) ?>">
+
+                    </div>
+
+                    <?php if ($priceErr !== ""): ?>
+
+                        <div class="text-danger small mt-1">
+
+                            <i class="fa-solid fa-circle-exclamation me-1"></i>
+
+                            <?= htmlspecialchars($priceErr) ?>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                </div>
 
 
+                <div class="col-md-6 mb-4">
+
+                    <label class="form-label">
+
+                        Stock Quantity
+
+                    </label>
+
+                    <input
+                        type="number"
+                        name="stock_quantity"
+                        min="0"
+                        step="1"
+                        class="form-control"
+                        placeholder="Enter quantity"
+                        value="<?= htmlspecialchars($stockQuantity) ?>">
+
+                    <?php if ($stockErr !== ""): ?>
+
+                        <div class="text-danger small mt-1">
+
+                            <i class="fa-solid fa-circle-exclamation me-1"></i>
+
+                            <?= htmlspecialchars($stockErr) ?>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                </div>
+
+            </div>
 
 
+            <!-- IMAGE -->
+
+            <div class="mb-4">
+
+                <label class="form-label">
+
+                    Product Image
+
+                </label>
+
+                <input
+                    type="file"
+                    name="product_image"
+                    id="product_image"
+                    class="form-control"
+                    accept=".jpg,.jpeg,.png">
+
+                <div class="form-text">
+
+                    JPG, JPEG or PNG. Maximum size: 500 KB.
+
+                </div>
+
+                <?php if ($imageErr !== ""): ?>
+
+                    <div class="text-danger small mt-1">
+
+                        <i class="fa-solid fa-circle-exclamation me-1"></i>
+
+                        <?= htmlspecialchars($imageErr) ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+            </div>
 
 
+            <!-- STATUS -->
+
+            <div class="mb-4">
+
+                <label class="form-label">
+
+                    Status
+
+                </label>
+
+                <select
+                    name="status"
+                    class="form-select">
+
+                    <option value="">
+                        Select Status
+                    </option>
+
+                    <option
+                        value="Active"
+                        <?= (
+                            $status === "Active"
+                        ) ? "selected" : "" ?>>
+
+                        Active
+
+                    </option>
+
+                    <option
+                        value="Inactive"
+                        <?= (
+                            $status === "Inactive"
+                        ) ? "selected" : "" ?>>
+
+                        Inactive
+
+                    </option>
+
+                </select>
+
+                <?php if ($statusErr !== ""): ?>
+
+                    <div class="text-danger small mt-1">
+
+                        <i class="fa-solid fa-circle-exclamation me-1"></i>
+
+                        <?= htmlspecialchars($statusErr) ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+            </div>
 
 
-</body>
+            <!-- BUTTONS -->
 
-</html>
+            <div
+                class="d-flex justify-content-end gap-2 pt-3 border-top">
+
+                <a
+                    href="products.php"
+                    class="btn btn-outline-secondary">
+
+                    <i class="fa-solid fa-xmark me-1"></i>
+
+                    Cancel
+
+                </a>
+
+                <button
+                    type="submit"
+                    name="save_product"
+                    class="btn btn-primary">
+
+                    <i class="fa-solid fa-floppy-disk me-1"></i>
+
+                    Save Product
+
+                </button>
+
+            </div>
+
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<?php
+
+include "includes/footer.php";
+
+mysqli_close($connect);
+
+?>
