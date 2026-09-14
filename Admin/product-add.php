@@ -445,6 +445,187 @@ include "includes/header.php";
 
 ?>
 
+<style>
+    /* ===== Page Header ===== */
+    .page-header {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid #e9eef5;
+        border-radius: 18px;
+        padding: 26px 28px;
+        margin-bottom: 22px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    .page-title {
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: #0f172a;
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+
+    .page-title i {
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* ===== Card ===== */
+    .form-card {
+        border: 1px solid #e9eef5;
+        border-radius: 18px;
+        box-shadow: 0 2px 14px rgba(15, 23, 42, 0.05);
+        overflow: hidden;
+    }
+
+    /* ===== Section Headers ===== */
+    .section-title {
+        font-weight: 700;
+        color: #0f172a;
+        font-size: 1.05rem;
+        margin: 0;
+    }
+
+    .section-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #eff6ff, #e0e7ff);
+        color: #4f46e5;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* ===== Form Labels ===== */
+    .form-label {
+        font-weight: 600;
+        color: #334155;
+        font-size: 0.88rem;
+        margin-bottom: 7px;
+    }
+
+    /* ===== Inputs ===== */
+    .form-control,
+    .form-select {
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        padding: 11px 14px;
+        font-size: 0.92rem;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    textarea.form-control {
+        min-height: 130px;
+        resize: vertical;
+    }
+
+    .input-group-text {
+        border-radius: 10px 0 0 10px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.88rem;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 10px 10px 0;
+    }
+
+    /* ===== Error Message ===== */
+    .field-error {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #dc2626;
+        font-size: 0.8rem;
+        margin-top: 6px;
+        font-weight: 500;
+    }
+
+    /* ===== Image Preview ===== */
+    .image-preview-wrap {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        background: #f8fafc;
+        margin-top: 12px;
+    }
+
+    .image-preview {
+        width: 76px;
+        height: 76px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid #e9eef5;
+        background: #fff;
+        flex-shrink: 0;
+    }
+
+    .image-preview-placeholder {
+        width: 76px;
+        height: 76px;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        flex-shrink: 0;
+    }
+
+    /* ===== Form Footer ===== */
+    .form-actions {
+        background: #f8fafc;
+        border-top: 1px solid #e9eef5;
+        padding: 18px 24px;
+        border-radius: 0 0 18px 18px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .form-actions .btn {
+        border-radius: 10px;
+        padding: 10px 22px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    /* ===== Alerts ===== */
+    .alert {
+        border: none;
+        border-radius: 12px;
+        padding: 14px 18px;
+        font-size: 0.9rem;
+    }
+
+    .alert-success {
+        background: #ecfdf5;
+        color: #065f46;
+        border-left: 4px solid #10b981;
+    }
+
+    /* ===== Divider ===== */
+    .form-divider {
+        border-top: 1px solid #f1f5f9;
+        margin: 28px 0;
+    }
+</style>
+
 
 <!-- =========================
      PAGE HEADER
@@ -458,7 +639,7 @@ include "includes/header.php";
 
             <h2 class="page-title">
 
-                <i class="fa-solid fa-circle-plus text-primary me-2"></i>
+                <i class="fa-solid fa-circle-plus me-2"></i>
 
                 Add New Product
 
@@ -517,25 +698,35 @@ include "includes/header.php";
      PRODUCT FORM
 ========================= -->
 
-<div class="card">
+<div class="card form-card">
 
     <div class="card-body p-4 p-md-5">
 
-        <div class="mb-4">
+        <!-- HEADER -->
 
-            <h5 class="fw-bold mb-1">
+        <div class="d-flex align-items-center gap-3 mb-4">
 
-                <i class="fa-solid fa-box-open text-primary me-2"></i>
+            <div class="section-icon">
 
-                Product Information
+                <i class="fa-solid fa-box-open"></i>
 
-            </h5>
+            </div>
 
-            <p class="text-muted mb-0">
+            <div>
 
-                Enter the details of the new product below.
+                <h5 class="section-title">
 
-            </p>
+                    Product Information
+
+                </h5>
+
+                <small class="text-muted">
+
+                    Enter the details of the new product below.
+
+                </small>
+
+            </div>
 
         </div>
 
@@ -546,13 +737,25 @@ include "includes/header.php";
             enctype="multipart/form-data">
 
 
+            <!-- =========================
+                 BASIC DETAILS
+            ========================= -->
+
+            <h6 class="text-uppercase text-muted fw-bold mb-3"
+                style="font-size: 0.72rem; letter-spacing: 0.08em;">
+
+                Basic Details
+
+            </h6>
+
+
             <!-- PRODUCT NAME -->
 
             <div class="mb-4">
 
                 <label class="form-label">
 
-                    Product Name
+                    Product Name <span class="text-danger">*</span>
 
                 </label>
 
@@ -560,14 +763,14 @@ include "includes/header.php";
                     type="text"
                     name="product_name"
                     class="form-control"
-                    placeholder="Enter product name"
+                    placeholder="e.g. Wireless Bluetooth Headphones"
                     value="<?= htmlspecialchars($productName) ?>">
 
                 <?php if ($productNameErr !== ""): ?>
 
-                    <div class="text-danger small mt-1">
+                    <div class="field-error">
 
-                        <i class="fa-solid fa-circle-exclamation me-1"></i>
+                        <i class="fa-solid fa-circle-exclamation"></i>
 
                         <?= htmlspecialchars($productNameErr) ?>
 
@@ -584,7 +787,7 @@ include "includes/header.php";
 
                 <label class="form-label">
 
-                    Category
+                    Category <span class="text-danger">*</span>
 
                 </label>
 
@@ -619,9 +822,9 @@ include "includes/header.php";
 
                 <?php if ($categoryErr !== ""): ?>
 
-                    <div class="text-danger small mt-1">
+                    <div class="field-error">
 
-                        <i class="fa-solid fa-circle-exclamation me-1"></i>
+                        <i class="fa-solid fa-circle-exclamation"></i>
 
                         <?= htmlspecialchars($categoryErr) ?>
 
@@ -646,12 +849,25 @@ include "includes/header.php";
                     name="description"
                     class="form-control"
                     rows="5"
-                    placeholder="Enter product description"><?= htmlspecialchars($description) ?></textarea>
+                    placeholder="Describe the product features, specifications, etc."><?= htmlspecialchars($description) ?></textarea>
 
             </div>
 
 
-            <!-- PRICE + STOCK -->
+            <div class="form-divider"></div>
+
+
+            <!-- =========================
+                 PRICING & STOCK
+            ========================= -->
+
+            <h6 class="text-uppercase text-muted fw-bold mb-3"
+                style="font-size: 0.72rem; letter-spacing: 0.08em;">
+
+                Pricing &amp; Stock
+
+            </h6>
+
 
             <div class="row">
 
@@ -659,7 +875,7 @@ include "includes/header.php";
 
                     <label class="form-label">
 
-                        Price
+                        Price <span class="text-danger">*</span>
 
                     </label>
 
@@ -684,9 +900,9 @@ include "includes/header.php";
 
                     <?php if ($priceErr !== ""): ?>
 
-                        <div class="text-danger small mt-1">
+                        <div class="field-error">
 
-                            <i class="fa-solid fa-circle-exclamation me-1"></i>
+                            <i class="fa-solid fa-circle-exclamation"></i>
 
                             <?= htmlspecialchars($priceErr) ?>
 
@@ -701,7 +917,7 @@ include "includes/header.php";
 
                     <label class="form-label">
 
-                        Stock Quantity
+                        Stock Quantity <span class="text-danger">*</span>
 
                     </label>
 
@@ -716,9 +932,9 @@ include "includes/header.php";
 
                     <?php if ($stockErr !== ""): ?>
 
-                        <div class="text-danger small mt-1">
+                        <div class="field-error">
 
-                            <i class="fa-solid fa-circle-exclamation me-1"></i>
+                            <i class="fa-solid fa-circle-exclamation"></i>
 
                             <?= htmlspecialchars($stockErr) ?>
 
@@ -731,13 +947,28 @@ include "includes/header.php";
             </div>
 
 
+            <div class="form-divider"></div>
+
+
+            <!-- =========================
+                 MEDIA & STATUS
+            ========================= -->
+
+            <h6 class="text-uppercase text-muted fw-bold mb-3"
+                style="font-size: 0.72rem; letter-spacing: 0.08em;">
+
+                Media &amp; Availability
+
+            </h6>
+
+
             <!-- IMAGE -->
 
             <div class="mb-4">
 
                 <label class="form-label">
 
-                    Product Image
+                    Product Image <span class="text-danger">*</span>
 
                 </label>
 
@@ -754,11 +985,48 @@ include "includes/header.php";
 
                 </div>
 
+
+                <!-- Live Preview -->
+
+                <div class="image-preview-wrap" id="previewWrap">
+
+                    <div class="image-preview-placeholder" id="previewPlaceholder">
+
+                        <i class="fa-solid fa-image fa-lg"></i>
+
+                    </div>
+
+                    <img
+                        src=""
+                        alt="Preview"
+                        class="image-preview d-none"
+                        id="imagePreview">
+
+                    <div>
+
+                        <div class="fw-semibold text-dark"
+                             style="font-size: 0.88rem;">
+
+                            Image Preview
+
+                        </div>
+
+                        <small class="text-muted">
+
+                            The selected image will appear here.
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+
                 <?php if ($imageErr !== ""): ?>
 
-                    <div class="text-danger small mt-1">
+                    <div class="field-error">
 
-                        <i class="fa-solid fa-circle-exclamation me-1"></i>
+                        <i class="fa-solid fa-circle-exclamation"></i>
 
                         <?= htmlspecialchars($imageErr) ?>
 
@@ -771,11 +1039,11 @@ include "includes/header.php";
 
             <!-- STATUS -->
 
-            <div class="mb-4">
+            <div class="mb-2">
 
                 <label class="form-label">
 
-                    Status
+                    Status <span class="text-danger">*</span>
 
                 </label>
 
@@ -811,9 +1079,9 @@ include "includes/header.php";
 
                 <?php if ($statusErr !== ""): ?>
 
-                    <div class="text-danger small mt-1">
+                    <div class="field-error">
 
-                        <i class="fa-solid fa-circle-exclamation me-1"></i>
+                        <i class="fa-solid fa-circle-exclamation"></i>
 
                         <?= htmlspecialchars($statusErr) ?>
 
@@ -824,40 +1092,71 @@ include "includes/header.php";
             </div>
 
 
-            <!-- BUTTONS -->
-
-            <div
-                class="d-flex justify-content-end gap-2 pt-3 border-top">
-
-                <a
-                    href="products.php"
-                    class="btn btn-outline-secondary">
-
-                    <i class="fa-solid fa-xmark me-1"></i>
-
-                    Cancel
-
-                </a>
-
-                <button
-                    type="submit"
-                    name="save_product"
-                    class="btn btn-primary">
-
-                    <i class="fa-solid fa-floppy-disk me-1"></i>
-
-                    Save Product
-
-                </button>
-
-            </div>
-
-
         </form>
 
     </div>
 
+
+    <!-- =========================
+         ACTION BUTTONS
+    ========================= -->
+
+    <div class="form-actions">
+
+        <a
+            href="products.php"
+            class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-xmark me-1"></i>
+
+            Cancel
+
+        </a>
+
+        <button
+            type="submit"
+            form=""
+            name="save_product"
+            class="btn btn-primary"
+            onclick="document.querySelector('form').submit();">
+
+            <i class="fa-solid fa-floppy-disk me-1"></i>
+
+            Save Product
+
+        </button>
+
+    </div>
+
 </div>
+
+
+<script>
+    /* ===== Live image preview ===== */
+    (function () {
+        var input = document.getElementById('product_image');
+        var preview = document.getElementById('imagePreview');
+        var placeholder = document.getElementById('previewPlaceholder');
+
+        if (!input || !preview || !placeholder) return;
+
+        input.addEventListener('change', function () {
+            var file = this.files && this.files[0];
+            if (!file) {
+                preview.classList.add('d-none');
+                placeholder.classList.remove('d-none');
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+                placeholder.classList.add('d-none');
+            };
+            reader.readAsDataURL(file);
+        });
+    })();
+</script>
 
 
 <?php

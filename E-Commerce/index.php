@@ -1,58 +1,200 @@
 <?php
+
 session_start();
 
 require_once __DIR__ . "/../Config/database.php";
 
-// Add product to session cart
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_to_cart"])) {
-    $productId = filter_input(INPUT_POST, "product_id", FILTER_VALIDATE_INT);
 
-    if ($productId) {
-        $stmt = mysqli_prepare($connect, "SELECT id, name, price, stock_quantity, image FROM products WHERE id = ? AND status = 'Active' LIMIT 1");
-        mysqli_stmt_bind_param($stmt, "i", $productId);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $product = mysqli_fetch_assoc($result);
-        mysqli_stmt_close($stmt);
+/* =========================================================
+   INITIALIZE CART
+========================================================= */
 
-        if ($product && (int)$product["stock_quantity"] > 0) {
-            if (!isset($_SESSION["cart"])) {
-                $_SESSION["cart"] = [];
+if (!isset($_SESSION["cart"]) || !is_array($_SESSION["cart"])) {
+    $_SESSION["cart"] = [];
+}
+
+
+/* =========================================================
+   INITIALIZE WISHLIST
+========================================================= */
+
+if (!isset($_SESSION["wishlist"]) || !is_array($_SESSION["wishlist"])) {
+    $_SESSION["wishlist"] = [];
+}
+
+
+/* =========================================================
+   HANDLE POST ACTIONS
+========================================================= */
+
+$flashMessage = "";
+$flashType    = "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    /* --- WISHLIST TOGGLE --- */
+    if (isset($_POST["toggle_wishlist"])) {
+
+        $productId = filter_input(INPUT_POST, "product_id", FILTER_VALIDATE_INT);
+
+        if ($productId) {
+
+            if (in_array($productId, $_SESSION["wishlist"], true)) {
+
+                $_SESSION["wishlist"] = array_values(
+                    array_diff($_SESSION["wishlist"], [$productId])
+                );
+
+            } else {
+
+                $_SESSION["wishlist"][] = $productId;
             }
-
-            $currentQty = isset($_SESSION["cart"][$productId]) ? (int)$_SESSION["cart"][$productId] : 0;
-            $_SESSION["cart"][$productId] = min($currentQty + 1, (int)$product["stock_quantity"]);
         }
+
+        header("Location: index.php");
+        exit;
     }
 
-    header("Location: index.php");
-    exit;
+
+    /* --- ADD TO CART --- */
+    if (isset($_POST["add_to_cart"])) {
+
+        $productId = filter_input(INPUT_POST, "product_id", FILTER_VALIDATE_INT);
+
+        if ($productId) {
+
+            $stmt = mysqli_prepare(
+                $connect,
+                "SELECT id, stock_quantity
+                 FROM products
+                 WHERE id = ? AND status = 'Active'
+                 LIMIT 1"
+            );
+
+            if ($stmt) {
+
+                mysqli_stmt_bind_param($stmt, "i", $productId);
+                mysqli_stmt_execute($stmt);
+
+                $result  = mysqli_stmt_get_result($stmt);
+                $product = mysqli_fetch_assoc($result);
+
+                mysqli_stmt_close($stmt);
+
+                if ($product) {
+
+                    $stock = (int) $product["stock_quantity"];
+
+                    if ($stock > 0) {
+
+                        $currentQty = isset($_SESSION["cart"][$productId])
+                            ? (int) $_SESSION["cart"][$productId]
+                            : 0;
+
+                        $_SESSION["cart"][$productId] = min($currentQty + 1, $stock);
+
+                        $flashMessage = "Product added to cart.";
+                        $flashType    = "success";
+                    }
+                }
+            }
+        }
+
+        header("Location: index.php");
+        exit;
+    }
 }
 
-// Fetch active categories
+
+/* =========================================================
+   FETCH ACTIVE CATEGORIES
+========================================================= */
+
 $categories = [];
-$categoryResult = mysqli_query($connect, "SELECT id, name FROM categories WHERE status = 'Active' ORDER BY name ASC");
+
+$categoryResult = mysqli_query(
+    $connect,
+    "SELECT id, name
+     FROM categories
+     WHERE status = 'Active'
+     ORDER BY name ASC
+     LIMIT 8"
+);
+
 if ($categoryResult) {
-    while ($category = mysqli_fetch_assoc($categoryResult)) {
-        $categories[] = $category;
+    while ($row = mysqli_fetch_assoc($categoryResult)) {
+        $categories[] = $row;
     }
 }
 
-// Fetch active products
+
+/* =========================================================
+   FETCH ACTIVE PRODUCTS
+========================================================= */
+
 $products = [];
-$productResult = mysqli_query($connect, "SELECT id, category_id, name, description, price, stock_quantity, image FROM products WHERE status = 'Active' ORDER BY id DESC");
+
+$productResult = mysqli_query(
+    $connect,
+    "SELECT id, category_id, name, price, stock_quantity, image
+     FROM products
+     WHERE status = 'Active'
+     ORDER BY id DESC"
+);
+
 if ($productResult) {
-    while ($product = mysqli_fetch_assoc($productResult)) {
-        $products[] = $product;
+    while ($row = mysqli_fetch_assoc($productResult)) {
+        $products[] = $row;
     }
 }
+
+
+/* =========================================================
+   CART COUNT
+========================================================= */
 
 $cartCount = 0;
-if (!empty($_SESSION["cart"]) && is_array($_SESSION["cart"])) {
-    foreach ($_SESSION["cart"] as $quantity) {
-        $cartCount += (int)$quantity;
-    }
+
+foreach ($_SESSION["cart"] as $qty) {
+    $cartCount += (int) $qty;
 }
+
+
+/* =========================================================
+   PRODUCT BUCKETS FOR TABS
+========================================================= */
+
+$latestProducts = array_slice($products, 0, 8);
+
+$featuredProducts = $products;
+
+usort($featuredProducts, function ($a, $b) {
+    return (float) $b["price"] <=> (float) $a["price"];
+});
+
+$featuredProducts = array_slice($featuredProducts, 0, 8);
+
+$specialProducts = array_values(array_filter($products, function ($p) {
+    return (int) $p["stock_quantity"] > 0
+        && (int) $p["stock_quantity"] <= 5;
+}));
+
+if (empty($specialProducts)) {
+    $specialProducts = array_slice($products, 0, 8);
+}
+
+$newArrivals = array_slice($products, 0, 8);
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function e($value)
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES, "UTF-8");
+}
+
 
 function productImage($image)
 {
@@ -60,297 +202,463 @@ function productImage($image)
         return "../assets/images/product/1.png";
     }
 
-    if (strpos($image, "../Images/") === 0) {
+    if (strpos($image, "../") === 0) {
         return $image;
     }
 
     return "../Images/" . rawurlencode(basename($image));
 }
 
+
 function stockLabel($stock)
 {
-    $stock = (int)$stock;
-    if ($stock <= 0) return "Out of Stock";
-    if ($stock <= 5) return "Only " . $stock . " left";
+    $stock = (int) $stock;
+
+    if ($stock <= 0) {
+        return "Out of Stock";
+    }
+
+    if ($stock <= 5) {
+        return "Only " . $stock . " left";
+    }
+
     return "In Stock";
 }
 
-$featuredProducts = $products;
-usort($featuredProducts, function ($a, $b) {
-    return (float)$b["price"] <=> (float)$a["price"];
-});
-$featuredProducts = array_slice($featuredProducts, 0, 4);
 
-$specialProducts = array_values(array_filter($products, function ($p) {
-    return (int)$p["stock_quantity"] <= 5;
-}));
-if (empty($specialProducts)) {
-    $specialProducts = array_slice($products, 0, 4);
+/* Renders product card in the SAME markup used in the file */
+function renderProductCard($product)
+{
+    $id     = (int) $product["id"];
+    $stock  = (int) $product["stock_quantity"];
+    $image  = productImage($product["image"]);
+    $inWish = in_array($id, $_SESSION["wishlist"] ?? [], true);
+    ?>
+
+    <div class="card product-card position-relative">
+
+        <!-- WISHLIST HEART -->
+        <form
+            method="post"
+            class="position-absolute"
+            style="top:8px;right:15px;z-index:5;">
+
+            <input type="hidden" name="product_id" value="<?= $id ?>">
+
+            <button
+                type="submit"
+                name="toggle_wishlist"
+                class="btn btn-light btn-sm rounded-circle shadow-sm border-0"
+                title="<?= $inWish ? 'Remove from wishlist' : 'Add to wishlist' ?>"
+                style="width:32px;height:32px;padding:0;line-height:1;">
+
+                <i class="bi <?= $inWish ? 'bi-heart-fill text-danger' : 'bi-heart' ?>"></i>
+
+            </button>
+
+        </form>
+
+        <a href="product-details.php?id=<?= $id ?>">
+            <img
+                src="<?= e($image) ?>"
+                class="card-img-top image-first"
+                alt="<?= e($product["name"]) ?>"
+                onerror="this.onerror=null;this.src='../assets/images/product/1.png';">
+        </a>
+
+        <div class="card-body pt-0">
+
+            <?php if ($stock <= 0): ?>
+                <span class="discount-badge bg-danger text-white">Out of Stock</span>
+            <?php elseif ($stock <= 5): ?>
+                <span class="discount-badge">Low Stock</span>
+            <?php endif; ?>
+
+        </div>
+
+        <div class="product-price px-3 pb-2">
+
+            <h5 class="card-title">
+                <a href="product-details.php?id=<?= $id ?>">
+                    <?= e($product["name"]) ?>
+                </a>
+            </h5>
+
+            <div class="mb-2">
+                <small class="text-warning">
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-half"></i>
+                </small>
+            </div>
+
+            <div class="d-block">
+                <span class="sell-price">
+                    Rs. <?= number_format((float) $product["price"], 2) ?>
+                </span>
+            </div>
+
+            <div class="mt-1">
+                <small class="<?= $stock > 0 ? 'text-success' : 'text-danger' ?>">
+                    <?= e(stockLabel($stock)) ?>
+                </small>
+            </div>
+
+        </div>
+
+        <div class="d-block mb-2">
+
+            <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
+
+                <?php if ($stock > 0): ?>
+
+                    <form method="post" class="mb-2 mb-lg-0 w-100">
+
+                        <input type="hidden" name="product_id" value="<?= $id ?>">
+
+                        <button
+                            type="submit"
+                            name="add_to_cart"
+                            class="btn btn-primary w-100">
+
+                            Add to Cart
+
+                        </button>
+
+                    </form>
+
+                <?php else: ?>
+
+                    <button
+                        type="button"
+                        class="btn btn-primary w-100 mb-2 mb-lg-0"
+                        disabled>
+
+                        Out of Stock
+
+                    </button>
+
+                <?php endif; ?>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <?php
 }
+
+
+function renderProductGrid($items)
+{
+    if (empty($items)) {
+
+        echo '<div class="col-12">
+                <div class="alert alert-light text-center mb-0">
+                    No products available.
+                </div>
+              </div>';
+
+        return;
+    }
+
+    foreach ($items as $product) {
+
+        echo '<div class="col">';
+        renderProductCard($product);
+        echo '</div>';
+    }
+}
+
+
+/* =========================================================
+   LOGIN STATUS
+========================================================= */
+
+$isLoggedIn    = isset($_SESSION["user_id"]);
+$wishlistCount = count($_SESSION["wishlist"]);
+
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Furnishop</title>
-    <meta name="description" content="">
+    <meta name="description" content="" >
     <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico">
     <link rel="stylesheet" href="../assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="../assets/font/bootstrap-icons-1.11.3/font/bootstrap-icons.min.css">
-    <!-- font-awesome CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+     <!-- font-awesome CSS -->
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <link rel="stylesheet" href="../assets/plugin/nice-select/nice-select.css">
     <link rel="stylesheet" href="../assets/plugin/OwlCarousel2-2.3.4/dist/assets/owl.carousel.min.css">
     <link rel="stylesheet" href="../assets/plugin/OwlCarousel2-2.3.4/dist/assets/owl.theme.default.min.css">
     <link rel="stylesheet" href="../assets/plugin/nouislider/nouislider.min.css">
     <link rel="stylesheet" href="../assets/plugin/slick/slick.css">
     <link rel="stylesheet" href="../assets/css/style.css">
-    <!-- Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+      <!-- Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;display=swap"  rel="stylesheet">
 </head>
-
 <body>
     <!-- Header Section Start -->
     <header>
         <!-- Navbar -->
-        <div class="container py-lg-2 mt-0 mt-lg-2">
-            <div class="row">
-                <div class="col-12 col-sm-12 col-md-12 col-lg-2  mb-2 mb-lg-3 pt-3 pt-lg-2">
-                    <div class="row">
-                        <div class="col-12 d-flex justify-content-center mb-3 mb-lg-0">
-                            <!-- Logo -->
-                            <a class="navbar-brand flex-shrink-0 py-0 py-lg-0" href="index.php">
-                                <img src="../assets/images/logo.png" class="logo main-logo" alt="eCommerce HTML Template">
-                            </a>
-                            <!-- Logo -->
-                        </div>
+            <div class="container py-lg-2 mt-0 mt-lg-2">
+                <div class="row">
+                        <div class="col-12 col-sm-12 col-md-12 col-lg-2  mb-2 mb-lg-3 pt-3 pt-lg-2">
+                                <div class="row">
+                                    <div class="col-12 d-flex justify-content-center mb-3 mb-lg-0">
+                                        <!-- Logo -->
+                                        <a class="navbar-brand flex-shrink-0 py-0 py-lg-0" href="index.php">
+                                            <img src="../assets/images/logo.png" class="logo main-logo" alt="eCommerce HTML Template">
+                                        </a>
+                                        <!-- Logo -->
+                                        </div>
+                                    
+                                        <div class="col-12">
+                                        <div class="list-inline  d-lg-none d-flex justify-content-between">
 
-                        <div class="col-12">
-                            <div class="list-inline  d-lg-none d-flex justify-content-between">
+                                            <div class="list-inline-item d-inline-block d-lg-none">
+                                                <button class="navbar-toggler border-0 collapsed" type="button" data-bs-toggle="offcanvas"
+                                                    data-bs-target="#navbar-default" aria-controls="navbar-default"
+                                                    aria-label="Toggle navigation">
+                                                    <i class="bi bi-text-indent-left"></i>
+                                                </button>
+                                            </div>
 
-                                <div class="list-inline-item d-inline-block d-lg-none">
-                                    <button class="navbar-toggler border-0 collapsed" type="button" data-bs-toggle="offcanvas"
-                                        data-bs-target="#navbar-default" aria-controls="navbar-default"
-                                        aria-label="Toggle navigation">
-                                        <i class="bi bi-text-indent-left"></i>
-                                    </button>
+                                            <div>
+                                                <div class="list-inline-item me-4">
+                                                    <a href="<?= $isLoggedIn ? 'account.php' : 'login.php' ?>" class="text-muted d-flex flex-column justity-content-center align-items-center">
+                                                        <i class="bi bi-person"></i>
+                                                        <span class="d-none d-sm-none d-md-none d-lg-block" >Account</span>
+                                                    </a>
+                                                </div>
+                                                <div class="list-inline-item me-4">
+                                                    <a href="wishlist.php" class="text-muted  d-flex flex-column justity-content-center align-items-center">
+                                                        <i class="bi bi-heart"></i>
+                                                        <span class="d-none d-sm-none d-md-none d-lg-block" >Wishlist</span>
+                                                    </a>
+                                                </div>
+                                                <div class="list-inline-item me-4">
+                                                    <a href="cart.php" class="text-muted  d-flex flex-column justity-content-center align-items-center">
+                                                        <div class="position-relative">
+                                                            <i class="bi bi-cart"></i>
+                                                            <?php if ($cartCount > 0): ?>
+                                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                                                                <?= $cartCount ?>
+                                                            </span>
+                                                            <?php endif; ?>
+                                                        </div> 
+                                                        <span class="d-none d-sm-none d-md-none d-lg-block" >Your cart</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        </div>
                                 </div>
+                        </div>
+                        <div class="col-12 col-sm-12 col-md-12 col-lg-7">
+                            <nav class="navbar navbar-expand-lg navbar-light navbar-default py-0 pb-lg-2" aria-label="Offcanvas navbar large">
+                            <div class="container">
+                                <div class="offcanvas offcanvas-start pt-2" tabindex="-1" id="navbar-default"
+                                    aria-labelledby="navbar-defaultLabel">
+                                    <div class="offcanvas-header pb-1">
+                                        <a href="index.php"><img src="../assets/images/logo.png"
+                                                alt="eCommerce HTML Template"></a>
+                                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
+                                            aria-label="Close"></button>
+                                    </div>
+                                    <div class="offcanvas-body">
+                                        <div class="d-block d-lg-none mb-4">
+                                            <form action="products.php" method="GET">
+                                                <div class="input-group">
+                                                    <input class="form-control" type="search" name="search" placeholder="Search for products">
+                                                    <span class="input-group-append">
+                                                        <button
+                                                            class="btn bg-white border border-start-0 ms-n10 rounded-0 rounded-end"
+                                                            type="submit">
+                                                            <span class="bi bi-search"></span>
+                                                        </button>
+                                                    </span>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="mx-auto">
+                                            <ul class="navbar-nav align-items-center ms-lg-5">
+                                                <li class="nav-item dropdown w-100 w-lg-auto">
+                                                    <a class="nav-link" href="index.php">Home</a>
+                                                </li>
+                                                <li class="nav-item dropdown w-100 w-lg-auto">
+                                                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                                                        data-bs-toggle="dropdown" aria-expanded="false">Shop</a>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="products.php">Shop Page - Filter</a></li>
+                                                        <li><a class="dropdown-item" href="product-details.php">Shop Single</a></li>
+                                                        <li><a class="dropdown-item" href="wishlist.php">Shop Wishlist</a></li>
+                                                        <li><a class="dropdown-item" href="cart.php">Shop Cart</a></li>
+                                                        <li><a class="dropdown-item" href="checkout.php">Shop Checkout</a></li>
+                                                    </ul>
+                                                </li>
+                                                <li class="nav-item dropdown w-100 w-lg-auto dropdown-fullwidth">
+                                                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                                                        data-bs-toggle="dropdown" aria-expanded="false">Categories</a>
+                                                    <div class="dropdown-menu pb-0">
+                                                        <div class="row p-2 p-lg-4">
+                                                            <?php if (!empty($categories)): ?>
+                                                                <?php foreach (array_slice($categories, 0, 3) as $cat): ?>
+                                                                    <div class="col-lg-4 col-12 mb-4 mb-lg-0">
+                                                                        <h6 class="text-primary ps-3"><?= e($cat["name"]) ?></h6>
+                                                                        <a class="dropdown-item" href="products.php?category=<?= (int) $cat["id"] ?>">
+                                                                            Browse <?= e($cat["name"]) ?>
+                                                                        </a>
+                                                                    </div>
+                                                                <?php endforeach; ?>
+                                                            <?php else: ?>
+                                                                <div class="col-12">
+                                                                    <p class="text-muted mb-0 ps-3">No categories yet.</p>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                                <li class="nav-item dropdown w-100 w-lg-auto">
+                                                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                                                        data-bs-toggle="dropdown" aria-expanded="false">Pages</a>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="#">Blog</a></li>
+                                                        <li><a class="dropdown-item" href="#">Blog Single</a></li>
+                                                        <li><a class="dropdown-item" href="#">About us</a></li>
+                                                        <li><a class="dropdown-item" href="#">Contact</a></li>
+                                                    </ul>
+                                                </li>
+                                                <li class="nav-item dropdown w-100 w-lg-auto">
+                                                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                                                        data-bs-toggle="dropdown" aria-expanded="false">Account</a>
+                                                        <ul class="dropdown-menu">
+                                                            <?php if ($isLoggedIn): ?>
+                                                                <li><a class="dropdown-item" href="account.php">My Account</a></li>
+                                                                <li><a class="dropdown-item" href="orders.php">My Orders</a></li>
+                                                                <li><a class="dropdown-item" href="logout.php">Logout</a></li>
+                                                            <?php else: ?>
+                                                                <li><a class="dropdown-item" href="login.php">Sign in</a></li>
+                                                                <li><a class="dropdown-item" href="register.php">Signup</a></li>
+                                                            <?php endif; ?>
+                                                        </ul>
+                                                </li>
+                                                
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </nav>
+                        </div>
+                        <div class="col-12 col-sm-12 col-md-12 col-lg-3 d-none d-lg-block">
+                                <!-- Navbar Actions -->
+                                <div class="offcanvas offcanvas-top" tabindex="-1" id="offcanvasTop" aria-labelledby="offcanvasTopLabel">
+                                    <div class="offcanvas-header">
+                                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                                    </div>
+                                    <div class="offcanvas-body">
+                                        <div class="mt-50">
+                                            <form action="products.php" method="GET">
+                                                <div class="input-group">
+                                                    <input class="form-control py-3" type="search" name="search" placeholder="Search for products">
+                                                    <span class="input-group-append">
+                                                        <button
+                                                            class="btn bg-white border border-start-0 ms-n10 py-3 rounded-0 rounded-end"
+                                                            type="submit">
+                                                            <span class="bi bi-search"></span>
+                                                        </button>
+                                                    </span>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    </div>
 
-                                <div>
+                                <div class="list-inline  d-flex pt-2">
                                     <div class="list-inline-item me-4">
-                                        <a href="login.php" class="text-muted d-flex flex-column justity-content-center align-items-center">
-                                            <i class="bi bi-person"></i>
-                                            <span class="d-none d-sm-none d-md-none d-lg-block">Account</span>
+                                        <a href="products.php"  data-bs-toggle="offcanvas" data-bs-target="#offcanvasTop" aria-controls="offcanvasTop" class="text-muted d-flex flex-column justity-content-center align-items-center">
+                                            <i class="bi bi-search"></i>
+                                            <span class="d-none d-sm-none d-md-none d-lg-block" >Search</span>
                                         </a>
                                     </div>
                                     <div class="list-inline-item me-4">
-                                        <a href="../wishlist.html" class="text-muted  d-flex flex-column justity-content-center align-items-center">
+                                        <a href="<?= $isLoggedIn ? 'account.php' : 'login.php' ?>" class="text-muted d-flex flex-column justity-content-center align-items-center">
+                                            <i class="bi bi-person"></i>
+                                            <span class="d-none d-sm-none d-md-none d-lg-block" >Account</span>
+                                        </a>
+                                    </div>
+                                    <div class="list-inline-item me-4">
+                                        <a href="wishlist.php" class="text-muted  d-flex flex-column justity-content-center align-items-center">
                                             <i class="bi bi-heart"></i>
-                                            <span class="d-none d-sm-none d-md-none d-lg-block">Wishlist</span>
+                                            <span class="d-none d-sm-none d-md-none d-lg-block" >Wishlist</span>
                                         </a>
                                     </div>
                                     <div class="list-inline-item me-4">
                                         <a href="cart.php" class="text-muted  d-flex flex-column justity-content-center align-items-center">
-                                            <div class="position-relative">
-                                                <i class="bi bi-cart"></i>
-                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
-                                                    <?= $cartCount ?>
-                                                </span>
-                                            </div>
-                                            <span class="d-none d-sm-none d-md-none d-lg-block">Your cart</span>
+                                            <i class="bi bi-cart"></i>
+                                            <span class="d-none d-sm-none d-md-none d-lg-block" >Your cart</span>
                                         </a>
                                     </div>
                                 </div>
-                            </div>
+                                <!-- Navbar Actions -->
                         </div>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-12 col-md-12 col-lg-7">
-                    <nav class="navbar navbar-expand-lg navbar-light navbar-default py-0 pb-lg-2" aria-label="Offcanvas navbar large">
-                        <div class="container">
-                            <div class="offcanvas offcanvas-start pt-2" tabindex="-1" id="navbar-default"
-                                aria-labelledby="navbar-defaultLabel">
-                                <div class="offcanvas-header pb-1">
-                                    <a href="index.php"><img src="../assets/images/logo.png"
-                                            alt="eCommerce HTML Template"></a>
-                                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
-                                        aria-label="Close"></button>
-                                </div>
-                                <div class="offcanvas-body">
-                                    <div class="d-block d-lg-none mb-4">
-                                        <form action="#">
-                                            <div class="input-group">
-                                                <input class="form-control" type="search" placeholder="Search for products">
-                                                <span class="input-group-append">
-                                                    <button
-                                                        class="btn bg-white border border-start-0 ms-n10 rounded-0 rounded-end"
-                                                        type="button">
-                                                        <span class="bi bi-search"></span>
-                                                    </button>
-                                                </span>
-                                            </div>
-                                        </form>
-                                    </div>
-                                    <div class="mx-auto">
-                                        <ul class="navbar-nav align-items-center ms-lg-5">
-                                            <li class="nav-item dropdown w-100 w-lg-auto">
-                                                <a class="nav-link" href="index.php">Home</a>
-                                            </li>
-                                            <li class="nav-item dropdown w-100 w-lg-auto">
-                                                <a class="nav-link dropdown-toggle" href="#" role="button"
-                                                    data-bs-toggle="dropdown" aria-expanded="false">Shop</a>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="products.php">Shop Page - Filter</a></li>
-                                                    <li><a class="dropdown-item" href="product-details.php">Shop Single</a></li>
-                                                    <li><a class="dropdown-item" href="../wishlist.html">Shop Wishlist</a></li>
-                                                    <li><a class="dropdown-item" href="cart.php">Shop Cart</a></li>
-                                                    <li><a class="dropdown-item" href="checkout.php">Shop Checkout</a></li>
-                                                </ul>
-                                            </li>
-                                            <li class="nav-item dropdown w-100 w-lg-auto dropdown-fullwidth">
-                                                <a class="nav-link dropdown-toggle" href="#" role="button"
-                                                    data-bs-toggle="dropdown" aria-expanded="false">Categories</a>
-                                                <div class="dropdown-menu pb-0">
-                                                    <div class="row p-2 p-lg-4">
-                                                        <div class="col-lg-4 col-12 mb-4 mb-lg-0">
-                                                            <h6 class="text-primary ps-3">Accessories</h6>
-                                                            <a class="dropdown-item" href="#">Table</a>
-                                                            <a class="dropdown-item" href="#">Chair</a>
-                                                        </div>
-                                                        <div class="col-lg-4 col-12 mb-4 mb-lg-0">
-                                                            <h6 class="text-primary ps-3">Accessories</h6>
-                                                            <a class="dropdown-item" href="#">Wardrobe</a>
-                                                            <a class="dropdown-item" href="#">Cupboard</a>
-                                                        </div>
-                                                        <div class="col-lg-4 col-12 mb-4 mb-lg-0">
-                                                            <h6 class="text-primary ps-3">Accessories</h6>
-                                                            <a class="dropdown-item" href="#">Sofa</a>
-                                                            <a class="dropdown-item" href="#">Bed</a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                            <li class="nav-item dropdown w-100 w-lg-auto">
-                                                <a class="nav-link dropdown-toggle" href="#" role="button"
-                                                    data-bs-toggle="dropdown" aria-expanded="false">Pages</a>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="../blog.html">Blog</a></li>
-                                                    <li><a class="dropdown-item" href="../blog-single.html">Blog Single</a>
-                                                    </li>
-                                                    <li><a class="dropdown-item" href="../about.html">About us</a></li>
-                                                    <li><a class="dropdown-item" href="../contact.html">Contact</a></li>
-                                                </ul>
-                                            </li>
-                                            <li class="nav-item dropdown w-100 w-lg-auto">
-                                                <a class="nav-link dropdown-toggle" href="#" role="button"
-                                                    data-bs-toggle="dropdown" aria-expanded="false">Account</a>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="login.php">Sign in</a></li>
-                                                    <li><a class="dropdown-item" href="register.php">Signup</a></li>
-                                                    <li><a class="dropdown-item" href="../forgot-password.html">Forgot Password</a></li>
-                                                </ul>
-                                            </li>
-
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </nav>
-                </div>
-                <div class="col-12 col-sm-12 col-md-12 col-lg-3 d-none d-lg-block">
-                    <!-- Navbar Actions -->
-                    <div class="offcanvas offcanvas-top" tabindex="-1" id="offcanvasTop" aria-labelledby="offcanvasTopLabel">
-                        <div class="offcanvas-header">
-                            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-                        </div>
-                        <div class="offcanvas-body">
-                            <div class="mt-50">
-                                <form action="#">
-                                    <div class="input-group">
-                                        <input class="form-control py-3" type="search" placeholder="Search for products">
-                                        <span class="input-group-append">
-                                            <button
-                                                class="btn bg-white border border-start-0 ms-n10 py-3 rounded-0 rounded-end"
-                                                type="button">
-                                                <span class="bi bi-search"></span>
-                                            </button>
-                                        </span>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="list-inline  d-flex pt-2">
-                        <div class="list-inline-item me-4">
-                            <a href="login.php" data-bs-toggle="offcanvas" data-bs-target="#offcanvasTop" aria-controls="offcanvasTop" class="text-muted d-flex flex-column justity-content-center align-items-center">
-                                <i class="bi bi-search"></i>
-                                <span class="d-none d-sm-none d-md-none d-lg-block">Search</span>
-                            </a>
-                        </div>
-                        <div class="list-inline-item me-4">
-                            <a href="login.php" class="text-muted d-flex flex-column justity-content-center align-items-center">
-                                <i class="bi bi-person"></i>
-                                <span class="d-none d-sm-none d-md-none d-lg-block">Account</span>
-                            </a>
-                        </div>
-                        <div class="list-inline-item me-4">
-                            <a href="../wishlist.html" class="text-muted  d-flex flex-column justity-content-center align-items-center">
-                                <i class="bi bi-heart"></i>
-                                <span class="d-none d-sm-none d-md-none d-lg-block">Wishlist</span>
-                            </a>
-                        </div>
-                        <div class="list-inline-item me-4">
-                            <a href="cart.php" class="text-muted  d-flex flex-column justity-content-center align-items-center">
-                                <i class="bi bi-cart"></i>
-                                <span class="d-none d-sm-none d-md-none d-lg-block">Your cart</span>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Navbar Actions -->
                 </div>
             </div>
-        </div>
         <!-- Navbar -->
     </header>
     <!-- Header Section End -->
+
+    <?php if ($flashMessage !== ""): ?>
+        <div class="container mt-3">
+            <div class="alert alert-<?= e($flashType) ?> alert-dismissible fade show mb-0" role="alert">
+                <?= e($flashMessage) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- Banner Slider -->
     <div class="banner-section" style="background-color: #FEF6F0;">
         <div class="container">
             <div class="owl-carousel owl-theme banner-slider">
-                <div class="item">
-                    <div class="banner-item" style="background-image: url(./assets/images/banner/1.png)">
+                <div class="item"> 
+                    <div class="banner-item" style="background-image: url(../assets/images/banner/1.png)">
                         <div class="container">
                             <div class="row">
                                 <div class="col-md-8 col-lg-6">
                                     <div class="banner-content text-left">
                                         <span class="mb-3 d-block">Top Selling!</span>
                                         <h2>Best Collection Furniture</h2>
-                                        <a href="#" class="btn btn-primary uppercase mt-4">Shop Now</a>
+                                        <a href="products.php" class="btn btn-primary uppercase mt-4">Shop Now</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="item">
-                    <div class="banner-item" style="background-image: url(./assets/images/banner/2.png)">
+                 </div>
+                 <div class="item"> 
+                    <div class="banner-item" style="background-image: url(../assets/images/banner/2.png)">
                         <div class="container">
                             <div class="row">
                                 <div class="col-md-8 col-lg-6">
                                     <div class="banner-content text-left">
                                         <span class="mb-3 d-block">Top Selling!</span>
                                         <h2>Best Collection Furniture</h2>
-                                        <a href="#" class="btn btn-primary uppercase mt-4">Shop Now</a>
+                                        <a href="products.php" class="btn btn-primary uppercase mt-4">Shop Now</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                 </div>
             </div>
         </div>
     </div>
@@ -388,7 +696,7 @@ if (empty($specialProducts)) {
                 </div>
             </div>
         </div>
-    </div>
+	</div>
     <!-- end hero banner Section -->
 
     <!-- Categories Section -->
@@ -397,158 +705,35 @@ if (empty($specialProducts)) {
             <div class="section-title">
                 <h2>Category</h2>
             </div>
-            <div class="category-container">
+             <div class="category-container">
                 <div class="owl-carousel category-slider">
                     <?php if (!empty($categories)): ?>
                         <?php foreach ($categories as $index => $category): ?>
                             <?php $categoryImage = (($index % 7) + 1); ?>
-                            <div class="item">
+                            <div class="item"> 
                                 <div>
-                                    <div class="category-hover">
-                                        <a href="products.php?category=<?= (int)$category['id'] ?>">
-                                            <img src="../assets/images/category/<?= $categoryImage ?>.png" class="img-fluid" alt="<?= htmlspecialchars($category['name']) ?>">
-                                        </a>
-                                    </div>
-                                    <a href="products.php?category=<?= (int)$category['id'] ?>" class="d-block category-title">
-                                        <?= htmlspecialchars($category['name']) ?>
+                                 <div class="category-hover">
+                                    <a href="products.php?category=<?= (int) $category["id"] ?>">
+                                        <img src="../assets/images/category/<?= $categoryImage ?>.png" class="img-fluid" alt="eCommerce Template"> 
                                     </a>
+                                  </div>
+                                  <a href="products.php?category=<?= (int) $category["id"] ?>" class="d-block category-title">
+                                    <?= e($category["name"]) ?>
+                                </a>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="item">
-                            <p class="text-muted">No active categories found.</p>
+                            <p class="text-muted">No categories yet.</p>
                         </div>
                     <?php endif; ?>
                 </div>
-            </div>
+             </div>
         </div>
     </div>
     <!-- End Categories Section -->
-
-    <!-- Product Section -->
-    <div class="product mt-100">
-        <div class="container">
-            <div>
-                <div class="section-title">
-                    <h2>Our Product</h2>
-                </div>
-                <div class="d-flex justify-content-center">
-                    <ul class="nav nav-pills" id="pills-tab" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="pills-lastest-tab" data-bs-toggle="pill" data-bs-target="#pills-lastest" type="button" role="tab">Latest</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="pills-popularity-tab" data-bs-toggle="pill" data-bs-target="#pills-popularity" type="button" role="tab">Featured</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="pills-top-tab" data-bs-toggle="pill" data-bs-target="#pills-top" type="button" role="tab">Special</button>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <?php
-            function renderProducts($items)
-            {
-                if (empty($items)) {
-                    echo '<div class="col-12"><div class="alert alert-light text-center">No products available.</div></div>';
-                    return;
-                }
-                foreach ($items as $product):
-                    $stock = (int)$product['stock_quantity'];
-                    $image = productImage($product['image']);
-            ?>
-                    <div class="col">
-                        <div class="card product-card h-100">
-                            <a href="product-details.php?id=<?= (int)$product['id'] ?>">
-                                <img src="<?= htmlspecialchars($image) ?>" class="card-img-top image-first" alt="<?= htmlspecialchars($product['name']) ?>">
-                                <img src="<?= htmlspecialchars($image) ?>" class="card-img-top image-second" alt="<?= htmlspecialchars($product['name']) ?>">
-                            </a>
-                            <div class="card-body pt-0">
-                                <div class="icons">
-                                    <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                        <i class="bi bi-heart"></i>
-                                    </a>
-                                </div>
-                                <?php if ($stock > 0 && $stock <= 5): ?>
-                                    <span class="discount-badge">Low Stock</span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="product-price px-3 pb-2">
-                                <h5 class="card-title"><a href="product-details.php?id=<?= (int)$product['id'] ?>"><?= htmlspecialchars($product['name']) ?></a></h5>
-                                <div class="mb-2"><small class="text-warning"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i></small></div>
-                                <div class="d-block">
-                                    <span class="sell-price">Rs. <?= number_format((float)$product['price'], 2) ?></span>
-                                </div>
-                                <small class="<?= $stock > 0 ? 'text-success' : 'text-danger' ?>">
-                                    <?= htmlspecialchars(stockLabel($stock)) ?>
-                                </small>
-                            </div>
-                            <div class="d-block mb-2">
-                                <div class="d-flex gap-2 px-2">
-                                    <?php if ($stock > 0): ?>
-
-                                        <form method="post" class="flex-fill">
-                                            <input type="hidden" name="product_id" value="<?= (int)$product['id'] ?>">
-
-                                            <button type="submit"
-                                                name="add_to_cart"
-                                                class="btn btn-primary w-100">
-                                                
-                                                Add to Cart
-                                            </button>
-                                        </form>
-
-                                        <a href="checkout.php?product_id=<?= (int)$product['id'] ?>"
-                                            class="btn btn-secondary flex-fill">
-                                           
-                                            Buy Now
-                                        </a>
-
-                                    <?php else: ?>
-
-                                        <button class="btn btn-secondary w-100" disabled>
-                                            Out of Stock
-                                        </button>
-
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-            <?php endforeach;
-            } ?>
-
-            <div class="tab-content" id="pills-tabContent">
-                <div class="tab-pane fade show active" id="pills-lastest" role="tabpanel">
-                    <div class="product">
-                        <div class="row g-4 row-cols-xl-4 row-cols-lg-3 row-cols-md-3 row-cols-sm-2 row-cols-2 mt-1">
-                            <?php renderProducts($products); ?>
-                        </div>
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="pills-popularity" role="tabpanel">
-                    <div class="product">
-                        <div class="row g-4 row-cols-xl-4 row-cols-lg-3 row-cols-md-3 row-cols-sm-2 row-cols-2 mt-1">
-                            <?php renderProducts($featuredProducts); ?>
-                        </div>
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="pills-top" role="tabpanel">
-                    <div class="product">
-                        <div class="row g-4 row-cols-xl-4 row-cols-lg-3 row-cols-md-3 row-cols-sm-2 row-cols-2 mt-1">
-                            <?php renderProducts($specialProducts); ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- End Product Section -->
-
-
-
+     
     <!-- Product Section -->
     <div class="product mt-100">
         <div class="container">
@@ -577,344 +762,10 @@ if (empty($specialProducts)) {
                 </div>
             </div>
             <div class="tab-content" id="pills-tabContent">
-                <div class="tab-pane fade show active" id="pills-lastest" role="tabpanel" aria-labelledby="pills-lastest-tab" tabindex="0">
+                <div class="tab-pane fade show active" id="pills-lastest" role="tabpanel"  aria-labelledby="pills-lastest-tab" tabindex="0">
                     <div class="product">
                         <div class="row g-4 row-cols-xl-4 row-cols-lg-3 row-cols-md-3 row-cols-sm-2 row-cols-2 mt-1">
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/1.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/2.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">20% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Sofa
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$13.00</span>
-                                            <span class="text-muted strike-through"><s>$15.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/3.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/4.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">10% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Light Table
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$9.00</span>
-                                            <span class="text-muted strike-through"><s>$10.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/5.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/6.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">5% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Particle board
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$18.00</span>
-                                            <span class="text-muted strike-through"><s>$19.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/7.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/8.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Rosewood sheesham
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$17.00</span>
-                                            <span class="text-muted strike-through"><s>$18.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/9.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/10.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">10% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Table rainbow
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$11.00</span>
-                                            <span class="text-muted strike-through"><s>$13.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/11.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/12.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Wood worldih
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$13.00</span>
-                                            <span class="text-muted strike-through"><s>$15.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/13.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/14.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Jumbo
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$6.00</span>
-                                            <span class="text-muted strike-through"><s>$7.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/15.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/16.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Chair Table
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$6.00</span>
-                                            <span class="text-muted strike-through"><s>$9.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <?php renderProductGrid($latestProducts); ?>
                         </div>
                     </div>
                     <div class="text-center mt-5">
@@ -924,336 +775,7 @@ if (empty($specialProducts)) {
                 <div class="tab-pane fade" id="pills-popularity" role="tabpanel" aria-labelledby="pills-popularity-tab" tabindex="0">
                     <div class="product">
                         <div class="row g-4 row-cols-xl-4 row-cols-lg-3 row-cols-md-3 row-cols-sm-2 row-cols-2 mt-1">
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/17.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/18.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">20% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Seater beige
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$13.00</span>
-                                            <span class="text-muted strike-through"><s>$15.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/19.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/20.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">10% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Layer rack
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$9.00</span>
-                                            <span class="text-muted strike-through"><s>$10.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/21.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/22.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">5% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Blue Sofa
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$18.00</span>
-                                            <span class="text-muted strike-through"><s>$19.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <div class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</div>
-                                            <div class="btn btn-secondary ms-lg-1">Buy Now</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/23.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/24.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Wooden
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$17.00</span>
-                                            <span class="text-muted strike-through"><s>$18.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/25.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/26.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">10% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Coffe Table
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$11.00</span>
-                                            <span class="text-muted strike-through"><s>$13.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/27.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/28.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Mini Wood
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$13.00</span>
-                                            <span class="text-muted strike-through"><s>$15.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/29.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/30.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Tea Table
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$6.00</span>
-                                            <span class="text-muted strike-through"><s>$7.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/31.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/32.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Study Table
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$6.00</span>
-                                            <span class="text-muted strike-through"><s>$9.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <?php renderProductGrid($featuredProducts); ?>
                         </div>
                     </div>
                     <div class="text-center mt-5">
@@ -1263,334 +785,7 @@ if (empty($specialProducts)) {
                 <div class="tab-pane fade" id="pills-top" role="tabpanel" aria-labelledby="pills-top-tab" tabindex="0">
                     <div class="product">
                         <div class="row g-4 row-cols-xl-4 row-cols-lg-3 row-cols-md-3 row-cols-sm-2 row-cols-2 mt-1">
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/23.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/24.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">20% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Wooden
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$13.00</span>
-                                            <span class="text-muted strike-through"><s>$15.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/17.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/18.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">10% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Seater beige
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$9.00</span>
-                                            <span class="text-muted strike-through"><s>$10.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/1.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/2.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">5% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Sofa
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$18.00</span>
-                                            <span class="text-muted strike-through"><s>$19.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/9.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/10.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Table rainbow
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$17.00</span>
-                                            <span class="text-muted strike-through"><s>$18.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/25.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/26.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">10% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Coffe Table
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$11.00</span>
-                                            <span class="text-muted strike-through"><s>$13.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/5.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/6.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Particle board
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$13.00</span>
-                                            <span class="text-muted strike-through"><s>$15.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/11.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/12.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Wood worldih
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$6.00</span>
-                                            <span class="text-muted strike-through"><s>$7.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card product-card">
-                                    <a href="product-details.php">
-                                        <img src="../assets/images/product/29.png" class="card-img-top image-first" alt="eCommerce Template">
-                                        <img src="../assets/images/product/30.png" class="card-img-top image-second" alt="eCommerce Template">
-                                    </a>
-                                    <div class="card-body pt-0">
-                                        <div class="icons">
-                                            <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist">
-                                                <i class="bi bi-heart"></i>
-                                            </a>
-                                        </div>
-                                        <span class="discount-badge">30% OFF</span>
-                                    </div>
-                                    <div class="product-price px-3 pb-2">
-                                        <h5 class="card-title"><a href="product-details.php">
-                                                Tea Table
-                                            </a>
-                                        </h5>
-                                        <div class="mb-2">
-                                            <small class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </small>
-                                        </div>
-                                        <div class="d-block">
-                                            <span class="sell-price">$6.00</span>
-                                            <span class="text-muted strike-through"><s>$9.00</s></span>
-                                        </div>
-                                    </div>
-                                    <div class="d-block mb-2">
-                                        <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                            <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                            <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <?php renderProductGrid($specialProducts); ?>
                         </div>
                     </div>
                     <div class="text-center mt-5">
@@ -1600,90 +795,105 @@ if (empty($specialProducts)) {
             </div>
         </div>
     </div>
-    <!-- Product Section End -->
+     <!-- Product Section End -->
 
-    <!-- Feature Section -->
+     <!-- Feature Section -->
     <div class="feature-section mt-100">
         <div class="container">
             <div class="row">
-                <div class="col-lg-12">
-                    <div class="white-bg border px-4 py-3">
-                        <div class="row">
-                            <div class="mb-20 col-12 col-sm-12 col-md-6 col-lg-3">
-                                <div class="feature-item">
-                                    <div class="feature-icon">
-                                        <img src="../assets/images/icon/delivery-truck.png" class="w-100" alt="truck Icon">
-                                    </div>
-                                    <div class="feature-info pt-3 ps-2">
-                                        <h4>Free Shipping</h4>
-                                        <p>On orders over&nbsp;<strong>$50.</strong></p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mb-20 col-12 col-sm-12 col-md-6 col-lg-3">
-                                <div class="feature-item">
-                                    <div class="feature-icon">
-                                        <img src="../assets/images/icon/loan.png" class="w-100" alt="truck Icon">
-                                    </div>
-                                    <div class="feature-info pt-3 ps-2">
-                                        <h4>Money Back</h4>
-                                        <p>Money back in 7 days.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mb-20 col-12 col-sm-12 col-md-6 col-lg-3">
-                                <div class="feature-item">
-                                    <div class="feature-icon">
-                                        <img src="../assets/images/icon/credit-card.png" class="w-100" alt="truck Icon">
-                                    </div>
-                                    <div class="feature-info pt-3 ps-2">
-                                        <h4>Secure Checkout</h4>
-                                        <p>100% Payment Secure.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mb-20 col-12 col-sm-12 col-md-6 col-lg-3">
-                                <div class="feature-item">
-                                    <div class="feature-icon">
-                                        <img src="../assets/images/icon/customer-service.png" class="w-100" alt="truck Icon">
-                                    </div>
-                                    <div class="feature-info pt-3 ps-2">
-                                        <h4>Online Support</h4>
-                                        <p>Ensure the product quality</p>
-                                    </div>
-                                </div>
-                            </div>
+              <div class="col-lg-12">
+                <div class="white-bg border px-4 py-3">
+                  <div class="row">
+                    <div class="mb-20 col-12 col-sm-12 col-md-6 col-lg-3">
+                      <div class="feature-item">
+                        <div class="feature-icon">
+                            <img src="../assets/images/icon/delivery-truck.png" class="w-100"  alt="truck Icon">
                         </div>
+                        <div class="feature-info pt-3 ps-2">
+                            <h4>Free Shipping</h4>
+                            <p>On orders over&nbsp;<strong>Rs. 5000.</strong></p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mb-20 col-12 col-sm-12 col-md-6 col-lg-3">
+                      <div class="feature-item">
+                        <div class="feature-icon">
+                            <img src="../assets/images/icon/loan.png" class="w-100"  alt="truck Icon">
+                        </div>
+                        <div class="feature-info pt-3 ps-2">
+                            <h4>Money Back</h4>
+                            <p>Money back in 7 days.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mb-20 col-12 col-sm-12 col-md-6 col-lg-3">
+                      <div class="feature-item">
+                        <div class="feature-icon">
+                            <img src="../assets/images/icon/credit-card.png" class="w-100"  alt="truck Icon">
+                        </div>
+                        <div class="feature-info pt-3 ps-2">
+                            <h4>Secure Checkout</h4>
+                            <p>100% Payment Secure.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mb-20 col-12 col-sm-12 col-md-6 col-lg-3">
+                      <div class="feature-item">
+                        <div class="feature-icon">
+                            <img src="../assets/images/icon/customer-service.png" class="w-100"  alt="truck Icon">
+                        </div>
+                        <div class="feature-info pt-3 ps-2">
+                            <h4>Online Support</h4>
+                            <p>Ensure the product quality</p>
+                        </div>
+                      </div>
                     </div>
                 </div>
+                </div>
+              </div>
             </div>
-        </div>
-    </div>
+          </div>
+       </div>
     <!-- Feature Section -->
 
-    <!-- Product Section -->
-    <div class="product mt-100">
+     <!-- Product Section -->
+     <div class="product mt-100">
         <div class="container">
             <div class="section-title">
                 <h2>New Arrivals</h2>
             </div>
             <div class="mt-0">
                 <div class="owl-carousel product-slider">
-                    <div class="card product-card mx-2 mb-3">
-                        <a href="product-details.php">
-                            <img src="../assets/images/product/17.png" class="card-img-top image-first" alt="eCommerce Template">
-                            <img src="../assets/images/product/18.png" class="card-img-top image-second" alt="eCommerce Template">
-                        </a>
-                        <div class="card-body pt-0">
-                            <div class="icons">
-                                <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist"><i class="bi bi-heart"></i></a>
-                            </div>
-                            <span class="discount-badge">20% OFF</span>
-                        </div>
-                        <div class="product-price px-3 pb-2">
-                            <h5 class="card-title"><a href="product-details.php">
-                                    Seater beige
-                                </a>
+                    <?php foreach ($newArrivals as $product): ?>
+                        <?php
+                        $id    = (int) $product["id"];
+                        $image = productImage($product["image"]);
+                        $stock = (int) $product["stock_quantity"];
+                        $inWish = in_array($id, $_SESSION["wishlist"] ?? [], true);
+                        ?>
+                       <div class="card product-card mx-2 mb-3 position-relative">
+                            <form method="post" class="position-absolute" style="top:8px;right:15px;z-index:5;">
+                                <input type="hidden" name="product_id" value="<?= $id ?>">
+                                <button type="submit" name="toggle_wishlist"
+                                    class="btn btn-light btn-sm rounded-circle shadow-sm border-0"
+                                    style="width:32px;height:32px;padding:0;line-height:1;">
+                                    <i class="bi <?= $inWish ? 'bi-heart-fill text-danger' : 'bi-heart' ?>"></i>
+                                </button>
+                            </form>
+                           <a href="product-details.php?id=<?= $id ?>">
+                               <img src="<?= e($image) ?>" class="card-img-top image-first" alt="<?= e($product["name"]) ?>" onerror="this.onerror=null;this.src='../assets/images/product/1.png';">
+                            </a>
+                            <div class="card-body pt-0">
+                               <?php if ($stock <= 0): ?>
+                                   <span class="discount-badge bg-danger text-white">Out of Stock</span>
+                               <?php elseif ($stock <= 5): ?>
+                                   <span class="discount-badge">Low Stock</span>
+                               <?php endif; ?>
+                           </div>
+                           <div class="product-price px-3 pb-2">
+                            <h5 class="card-title"><a href="product-details.php?id=<?= $id ?>">
+                                <?= e($product["name"]) ?>
+                            </a>
                             </h5>
                             <div class="mb-2">
                                 <small class="text-warning">
@@ -1695,315 +905,34 @@ if (empty($specialProducts)) {
                                 </small>
                             </div>
                             <div class="d-block">
-                                <span class="sell-price">$12.00</span>
-                                <span class="text-muted strike-through"><s>$15.00</s></span>
+                                <span class="sell-price">Rs. <?= number_format((float) $product["price"], 2) ?></span>
+                            </div>
+                            <div class="mt-1">
+                                <small class="<?= $stock > 0 ? 'text-success' : 'text-danger' ?>"><?= e(stockLabel($stock)) ?></small>
                             </div>
                         </div>
                         <div class="d-block mb-2">
                             <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                            </div>
+                                <?php if ($stock > 0): ?>
+                                    <form method="post" class="w-100">
+                                        <input type="hidden" name="product_id" value="<?= $id ?>">
+                                        <button type="submit" name="add_to_cart" class="btn btn-primary w-100">Add to Cart</button>
+                                    </form>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-primary w-100" disabled>Out of Stock</button>
+                                <?php endif; ?>
+                            </div>    
                         </div>
-                    </div>
-                    <div class="card product-card mx-2 mb-3">
-                        <a href="product-details.php">
-                            <img src="../assets/images/product/19.png" class="card-img-top image-first" alt="eCommerce Template">
-                            <img src="../assets/images/product/20.png" class="card-img-top image-second" alt="eCommerce Template">
-                        </a>
-                        <div class="card-body pt-0">
-                            <div class="icons">
-                                <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist"><i class="bi bi-heart"></i></a>
-                            </div>
-                            <span class="discount-badge">10% OFF</span>
-                        </div>
-                        <div class="product-price px-3 pb-2">
-                            <h5 class="card-title"><a href="product-details.php">
-                                    Layer rack
-                                </a>
-                            </h5>
-                            <div class="mb-2">
-                                <small class="text-warning">
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-half"></i>
-                                </small>
-                            </div>
-                            <div class="d-block">
-                                <span class="sell-price">$9.00</span>
-                                <span class="text-muted strike-through"><s>$10.00</s></span>
-                            </div>
-                        </div>
-                        <div class="d-block mb-2">
-                            <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card product-card mx-2 mb-3">
-                        <a href="product-details.php">
-                            <img src="../assets/images/product/21.png" class="card-img-top image-first" alt="eCommerce Template">
-                            <img src="../assets/images/product/22.png" class="card-img-top image-second" alt="eCommerce Template">
-                        </a>
-                        <div class="card-body pt-0">
-                            <div class="icons">
-                                <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist"><i class="bi bi-heart"></i></a>
-                            </div>
-                            <!-- <span class="discount-badge">5% OFF</span> -->
-                        </div>
-                        <div class="product-price px-3 pb-2">
-                            <h5 class="card-title"><a href="product-details.php">
-                                    Blue Sofa
-                                </a>
-                            </h5>
-                            <div class="mb-2">
-                                <small class="text-warning">
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-half"></i>
-                                </small>
-                            </div>
-                            <div class="d-block">
-                                <span class="sell-price">$10.00</span>
-                                <span class="text-muted strike-through"><s>$12.00</s></span>
-                            </div>
-                        </div>
-                        <div class="d-block mb-2">
-                            <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card product-card mx-2 mb-3">
-                        <a href="product-details.php">
-                            <img src="../assets/images/product/23.png" class="card-img-top image-first" alt="eCommerce Template">
-                            <img src="../assets/images/product/24.png" class="card-img-top image-second" alt="eCommerce Template">
-                        </a>
-                        <div class="card-body pt-0">
-                            <div class="icons">
-                                <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist"><i class="bi bi-heart"></i></a>
-                            </div>
-                            <span class="discount-badge">30% OFF</span>
-                        </div>
-                        <div class="product-price px-3 pb-2">
-                            <h5 class="card-title"><a href="product-details.php">
-                                    Wooden
-                                </a>
-                            </h5>
-                            <div class="mb-2">
-                                <small class="text-warning">
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-half"></i>
-                                </small>
-                            </div>
-                            <div class="d-block">
-                                <span class="sell-price">$12.00</span>
-                                <span class="text-muted strike-through"><s>$15.00</s></span>
-                            </div>
-                        </div>
-                        <div class="d-block mb-2">
-                            <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card product-card mx-2 mb-3">
-                        <a href="product-details.php">
-                            <img src="../assets/images/product/25.png" class="card-img-top image-first" alt="eCommerce Template">
-                            <img src="../assets/images/product/26.png" class="card-img-top image-second" alt="eCommerce Template">
-                        </a>
-                        <div class="card-body pt-0">
-                            <div class="icons">
-                                <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Wishlist"><i class="bi bi-heart"></i></a>
-                            </div>
-                            <span class="discount-badge">10% OFF</span>
-                        </div>
-                        <div class="product-price px-3 pb-2">
-                            <h5 class="card-title"><a href="product-details.php">
-                                    Coffe Table
-                                </a>
-                            </h5>
-                            <div class="mb-2">
-                                <small class="text-warning">
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-half"></i>
-                                </small>
-                            </div>
-                            <div class="d-block">
-                                <span class="sell-price">$12.00</span>
-                                <span class="text-muted strike-through"><s>$15.00</s></span>
-                            </div>
-                        </div>
-                        <div class="d-block mb-2">
-                            <div class="d-flex flex-column flex-sm-column flex-md-column flex-lg-row justify-content-between px-2">
-                                <a href="cart.php" class="btn btn-primary  mb-2 mb-lg-0">Add to Cart</a>
-                                <a href="checkout.php" class="btn btn-secondary ms-lg-1">Buy Now</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                       </div>
+                    <?php endforeach; ?>
+               </div>
             </div>
             <div class="text-center mt-5">
                 <a href="products.php" class="btn btn-primary">View All</a>
             </div>
         </div>
-    </div>
-    <!-- Product Section End -->
-
-    <!-- Start Blog Section -->
-    <div class="blog-section mt-100">
-        <div class="container">
-            <div class="section-title">
-                <h2>Latest Blog</h2>
-            </div>
-            <div class="owl-carousel  owl-theme blog-slider">
-                <div class="blog-item p-1">
-                    <div class="blog-wraper">
-                        <div class="blog-header">
-                            <div class="mb-3">
-                                <a href="../blog-single.html">
-                                    <div class="img-zoom">
-                                        <img src="../assets/images/blog-1.png" alt="eCommerce Html Template" class="img-fluid w-100">
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="blog-body pb-4 px-3">
-                            <div class="row row-cols-xl-2 row-cols-lg-2 row-cols-1 row-cols-md-1 blog-info">
-                                <div><i class="bi bi-calendar"></i><span class="ms-2">November 12, 2023</span></div>
-                                <div class="d-none d-sm-none d-md-none d-lg-block"><i class="bi bi-chat"></i><span class="ms-2">0 comments</span></div>
-                            </div>
-                            <div>
-                                <h2 class="h5 blog-title mt-3">
-                                    <a href="../blog-single.html" class="text-inherit">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Consequatur voluptates excepturi enim!</a>
-                                </h2>
-                                <div class="text-muted mt-3">
-                                    <a href="../blog-single.html" class="btn btn-primary btn-sm">Read More</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="blog-item p-1">
-                    <div class="blog-wraper">
-                        <div class="blog-header">
-                            <div class="mb-3">
-                                <a href="../blog-single.html">
-                                    <div class="img-zoom">
-                                        <img src="../assets/images/blog-2.png" alt="eCommerce Html Template" class="img-fluid w-100">
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="blog-body pb-4 px-3">
-                            <div class="row row-cols-xl-2 row-cols-lg-2 row-cols-1 row-cols-md-1 blog-info">
-                                <div><i class="bi bi-calendar"></i><span class="ms-2">November 12, 2023</span></div>
-                                <div class="d-none d-sm-none d-md-none d-lg-block"><i class="bi bi-chat"></i><span class="ms-2">0 comments</span></div>
-                            </div>
-                            <div>
-                                <h2 class="h5 blog-title mt-3">
-                                    <a href="../blog-single.html" class="text-inherit">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Consequatur voluptates excepturi enim!</a>
-                                </h2>
-                                <div class="text-muted mt-3">
-                                    <a href="../blog-single.html" class="btn btn-primary btn-sm">Read More</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="blog-item p-1">
-                    <div class="blog-wraper">
-                        <div class="blog-header">
-                            <div class="mb-3">
-                                <a href="../blog-single.html">
-                                    <div class="img-zoom">
-                                        <img src="../assets/images/blog-3.png" alt="eCommerce Html Template" class="img-fluid w-100">
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="blog-body pb-4 px-3">
-                            <div class="row row-cols-xl-2 row-cols-lg-2 row-cols-1 row-cols-md-1 blog-info">
-                                <div><i class="bi bi-calendar"></i><span class="ms-2">November 12, 2023</span></div>
-                                <div class="d-none d-sm-none d-md-none d-lg-block"><i class="bi bi-chat"></i><span class="ms-2">0 comments</span></div>
-                            </div>
-                            <div>
-                                <h2 class="h5 blog-title mt-3">
-                                    <a href="../blog-single.html" class="text-inherit">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Consequatur voluptates excepturi enim!</a>
-                                </h2>
-                                <div class="text-muted mt-3">
-                                    <a href="../blog-single.html" class="btn btn-primary btn-sm">Read More</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="blog-item p-1">
-                    <div class="blog-wraper">
-                        <div class="blog-header">
-                            <div class="mb-3">
-                                <a href="../blog-single.html">
-                                    <div class="img-zoom">
-                                        <img src="../assets/images/blog-4.png" alt="eCommerce Html Template" class="img-fluid w-100">
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="blog-body pb-4 px-3">
-                            <div class="row row-cols-xl-2 row-cols-lg-2 row-cols-1 row-cols-md-1 blog-info">
-                                <div><i class="bi bi-calendar"></i><span class="ms-2">November 12, 2023</span></div>
-                                <div class="d-none d-sm-none d-md-none d-lg-block"><i class="bi bi-chat"></i><span class="ms-2">0 comments</span></div>
-                            </div>
-                            <div>
-                                <h2 class="h5 blog-title mt-3">
-                                    <a href="../blog-single.html" class="text-inherit">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Consequatur voluptates excepturi enim!</a>
-                                </h2>
-                                <div class="text-muted mt-3">
-                                    <a href="../blog-single.html" class="btn btn-primary btn-sm">Read More</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- End Blog Section -->
-
-
-    <div class="news-letter mt-50">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="row">
-                        <div class="col-lg-6">
-                            <h4 class="text-center mb-4 mb-lg-0"> <i class="bi bi-envelope me-2"></i> Subscribe Our Newsletter</h4>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="input-group d-flex me-5">
-                                <input id="searchInput" class="form-control py-10 px-20" type="email" placeholder="Enter your new address">
-                                <button type="button" class="btn btn-primary bg-gradient">Subscribe</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+      </div>
+     <!-- Product Section End -->
 
     <!-- footer Section -->
     <footer class="mt-0">
@@ -2016,9 +945,9 @@ if (empty($specialProducts)) {
                                 <img loading="lazy" src="../assets/images/logo.png" class="logo" alt="easy shop">
                             </div>
                             <div class="mt-4">
-                                <p>Widgetify Inc, 456 Gadget Avenue, <br> Techtown, TX 67890, <br> United States of America</p>
-                                <h3 class="h5 fw-bold">(987) 654-3210</h3>
-                                <p>info@example.com</p>
+                                <p>Furnishop provides quality furniture and home products for every space.</p> 
+                                <h3 class="h5 fw-bold">+92 300 1234567</h3>
+                                <p>support@furnishop.com</p>
                             </div>
                         </div>
                     </div>
@@ -2029,12 +958,18 @@ if (empty($specialProducts)) {
                             <div class="footer_menu">
                                 <h4 class="footer_title">My Account</h4>
                                 <ul class="m-0 p-0 list-unstyled">
-                                    <li><a href="#">Orders</a></li>
-                                    <li><a href="#">Wishlist</a></li>
-                                    <li><a href="#">Track Order</a></li>
-                                    <li><a href="#">Manage Account</a></li>
+                                    <?php if (!$isLoggedIn): ?>
+                                        <li><a href="login.php">Login</a></li>
+                                        <li><a href="register.php">Register</a></li>
+                                    <?php else: ?>
+                                        <li><a href="account.php">My Account</a></li>
+                                        <li><a href="orders.php">My Orders</a></li>
+                                        <li><a href="logout.php">Logout</a></li>
+                                    <?php endif; ?>
+                                    <li><a href="cart.php">Cart</a></li>
+                                    <li><a href="wishlist.php">Wishlist</a></li>
                                 </ul>
-
+                               
                             </div>
                         </div>
                         <div class="col-6">
@@ -2056,22 +991,25 @@ if (empty($specialProducts)) {
                             <div class="footer_menu">
                                 <h4 class="footer_title">Useful Links</h4>
                                 <ul class="m-0 p-0 list-unstyled">
-                                    <li><a href="#">Orders</a></li>
-                                    <li><a href="#">Wishlist</a></li>
-                                    <li><a href="#">Track Order</a></li>
-                                    <li><a href="#">Manage Account</a></li>
+                                    <li><a href="products.php">Products</a></li>
+                                    <li><a href="cart.php">Shopping Cart</a></li>
+                                    <li><a href="orders.php">My Orders</a></li>
+                                    <li><a href="#">Contact</a></li>
                                 </ul>
-
+                               
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="footer_menu">
                                 <h4 class="footer_title">Categories</h4>
                                 <ul class="m-0 p-0 list-unstyled">
-                                    <li><a href="#">About Us</a></li>
-                                    <li><a href="#">Return Policy</a></li>
-                                    <li><a href="#">Privacy Policy</a></li>
-                                    <li><a href="#">FAQ</a></li>
+                                    <?php if (!empty($categories)): ?>
+                                        <?php foreach (array_slice($categories, 0, 4) as $cat): ?>
+                                            <li><a href="products.php?category=<?= (int) $cat["id"] ?>"><?= e($cat["name"]) ?></a></li>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <li><a href="products.php">All Products</a></li>
+                                    <?php endif; ?>
                                 </ul>
                             </div>
                         </div>
@@ -2079,8 +1017,8 @@ if (empty($specialProducts)) {
                 </div>
             </div>
         </div>
-        <div class="text-center py-3 mt-4 text-white px-3 copyright">
-            <span>Copyright © 2024. All Rights Reserved. Themes By TemplateRise</span>
+        <div class="text-center py-3 mt-4 text-white px-3 copyright" >
+            <span>Copyright © <?= date("Y") ?>. All Rights Reserved. Furnishop.</span>
         </div>
     </footer>
     <script src="../assets/js/jquery-3.6.0.min.js"></script>
@@ -2091,5 +1029,4 @@ if (empty($specialProducts)) {
     <script src="../assets/plugin/slick/slick.min.js"></script>
     <script src="../assets/js/main.js"></script>
 </body>
-
 </html>
