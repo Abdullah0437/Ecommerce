@@ -1,399 +1,381 @@
 <?php
+/* =========================================================
+   ADMIN HEADER
+   Furnishop Admin Panel
+========================================================= */
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-?>
+$pageTitle      = $pageTitle      ?? "Admin Panel";
+$pageHeading    = $pageHeading    ?? "Admin Panel";
+$pageSubheading = $pageSubheading ?? "";
 
-<!doctype html>
+$adminName = $_SESSION["admin_name"] ?? "Admin";
+$adminInitial = strtoupper(substr($adminName, 0, 1));
+
+$currentPage = basename($_SERVER["PHP_SELF"]);
+?>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
 
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?php echo htmlspecialchars($pageTitle); ?> — Furnishop Admin</title>
 
-    <title>Admin Panel</title>
-
-    <!-- Bootstrap -->
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        rel="stylesheet">
-
-    <!-- Font Awesome -->
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
+            font-family: 'Poppins', sans-serif;
+            background: #f4f6fb;
             margin: 0;
-            background: #f1f5f9;
-            font-family: Arial, sans-serif;
-            color: #1e293b;
         }
 
-        /* =========================
-           SIDEBAR
-        ========================= */
+        /* ============================
+           LAYOUT
+        ============================ */
 
-        .sidebar {
+        .admin-layout {
+            display: flex;
             min-height: 100vh;
-            background: #0f172a;
-            transition: 0.3s ease;
-            overflow: hidden;
         }
 
-        .brand {
-            display: flex !important;
-            align-items: center;
-            padding: 24px 20px !important;
-            margin: 0 !important;
-            border-radius: 0 !important;
-            color: white !important;
-            font-size: 21px;
-            font-weight: bold;
-            text-decoration: none;
+        .admin-sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: #cbd5e1;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            padding: 24px 0;
+            overflow-y: auto;
+            z-index: 100;
         }
 
-        .brand i {
-            color: #60a5fa;
-            font-size: 22px;
+        .admin-sidebar .brand {
+            padding: 0 24px 24px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            margin-bottom: 16px;
         }
 
-        .sidebar hr {
-            border-color: #334155;
-            opacity: 0.5;
-            margin: 10px 15px;
+        .admin-sidebar .brand i {
+            color: #818cf8;
+            margin-right: 8px;
         }
 
-        .sidebar a {
+        .admin-sidebar .nav-link {
+            color: #cbd5e1;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
             display: flex;
             align-items: center;
-            padding: 13px 16px;
-            margin: 5px 10px;
-            border-radius: 8px;
-            color: #cbd5e1;
-            text-decoration: none;
-            transition: 0.2s;
+            gap: 12px;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
         }
 
-        .sidebar a i {
-            width: 25px;
-            font-size: 16px;
+        .admin-sidebar .nav-link:hover {
+            color: #ffffff;
+            background: rgba(255,255,255,0.05);
         }
 
-        .sidebar a:hover {
-            background: #1e293b;
-            color: white;
+        .admin-sidebar .nav-link.active {
+            color: #ffffff;
+            background: rgba(129, 140, 248, 0.12);
+            border-left-color: #818cf8;
         }
 
-        .sidebar a.active {
-            background: #2563eb;
-            color: white;
+        .admin-sidebar .nav-link i {
+            width: 18px;
+            text-align: center;
         }
 
-        .sidebar a.text-danger {
-            color: #f87171 !important;
-        }
-
-        .sidebar a.text-danger:hover {
-            background: #3f1d24;
-            color: #fca5a5 !important;
-        }
-
-        /* =========================
-           COLLAPSED SIDEBAR
-        ========================= */
-
-        .sidebar.collapsed {
-            display: none;
-        }
-
-        .sidebar.collapsed .sidebar-text {
-            display: none;
-        }
-
-        .sidebar.collapsed a {
-            justify-content: center;
-            padding: 13px 0;
-        }
-
-        .sidebar.collapsed a i {
-            margin: 0 !important;
-        }
-
-        .sidebar.collapsed .brand {
-            justify-content: center;
-            padding: 24px 0 !important;
-        }
-
-        /* =========================
-           TOP HEADER
-        ========================= */
-
-        .top-header {
-            height: 70px;
-            background: white;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 15px 25px;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-        }
-
-        .top-header h5 {
-            color: #0f172a;
+        .admin-sidebar .nav-section {
+            padding: 18px 24px 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #64748b;
             font-weight: 600;
         }
 
-        .welcome-text {
-            color: #64748b;
+        .admin-main {
+            margin-left: 260px;
+            flex: 1;
+            min-width: 0;
         }
 
-        .welcome-text strong {
-            color: #2563eb;
+        /* ============================
+           TOPBAR
+        ============================ */
+
+        .admin-topbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
 
-        /* =========================
-           MAIN CONTENT
-        ========================= */
-
-        .main-content {
-            padding: 25px;
-        }
-
-        /* =========================
-           PAGE HEADER
-        ========================= */
-
-        .page-header {
-            background: white;
-            padding: 22px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
-        }
-
-        .page-title {
+        .admin-topbar .page-heading {
+            font-size: 20px;
+            font-weight: 600;
             margin: 0;
-            color: #0f172a;
-            font-size: 24px;
-            font-weight: 700;
         }
 
-        .page-header p {
-            color: #64748b;
+        .admin-topbar .page-heading small {
+            display: block;
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 400;
+            margin-top: 2px;
         }
 
-        /* =========================
-           CARDS
-        ========================= */
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
 
-        .card {
-            border: none;
+        .admin-user .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #8b5cf6);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* ============================
+           CONTENT
+        ============================ */
+
+        .admin-content {
+            padding: 28px 32px 60px;
+        }
+
+        /* ============================
+           STAT BOXES
+        ============================ */
+
+        .stat-box {
+            background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            height: 100%;
+            transition: all 0.2s ease;
         }
 
-        .dashboard-card {
-            border: none;
-            border-radius: 12px;
-            background: white;
-            transition: 0.2s;
+        .stat-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         }
 
-        .dashboard-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-        }
-
-        .dashboard-card h2 {
-            color: #0f172a;
-            font-weight: 700;
-        }
-
-        /* =========================
-           DASHBOARD ICON
-        ========================= */
-
-        .dashboard-icon {
-            width: 50px;
-            height: 50px;
+        .stat-box .stat-icon {
+            width: 44px;
+            height: 44px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 21px;
+            font-size: 18px;
+            margin-bottom: 12px;
         }
 
-        /* =========================
-           TABLES
-        ========================= */
+        .stat-box .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.1;
+        }
 
-        .table {
+        .stat-box .stat-label {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .icon-primary { background: #eef2ff; color: #4f46e5; }
+        .icon-success { background: #d1fae5; color: #047857; }
+        .icon-warning { background: #fef3c7; color: #b45309; }
+        .icon-info    { background: #dbeafe; color: #1d4ed8; }
+        .icon-danger  { background: #fee2e2; color: #b91c1c; }
+
+        /* ============================
+           PANELS
+        ============================ */
+
+        .panel {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 22px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .panel-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-header h3 i {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #eef2ff;
+            color: #4f46e5;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .panel-body {
+            padding: 22px;
+        }
+
+        /* ============================
+           TABLES
+        ============================ */
+
+        .admin-table {
+            width: 100%;
             margin-bottom: 0;
         }
 
-        .table th {
+        .admin-table thead th {
             background: #f8fafc;
-            color: #475569;
+            font-size: 12.5px;
             font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 14px 16px;
+            border-bottom: 1px solid #e5e7eb;
             white-space: nowrap;
-            border-bottom: 1px solid #e2e8f0;
         }
 
-        .table td {
+        .admin-table tbody td {
+            padding: 16px;
             vertical-align: middle;
-            color: #334155;
-            border-color: #e2e8f0;
+            font-size: 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #0f172a;
         }
 
-        .table tbody tr:hover {
-            background: #f8fafc;
+        .admin-table tbody tr:last-child td {
+            border-bottom: none;
         }
 
-        /* =========================
-           PRODUCT IMAGE
-        ========================= */
-
-        .product-image {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
+        .admin-table tbody tr:hover {
+            background: #fafbff;
         }
 
-        .no-image {
-            width: 60px;
-            height: 60px;
-            border-radius: 8px;
-            background: #f1f5f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #94a3b8;
-            font-size: 12px;
-        }
-
-        /* =========================
-           FORMS
-        ========================= */
-
-        .form-label {
-            color: #334155;
-            font-weight: 600;
-        }
-
-        .form-control,
-        .form-select {
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 10px 12px;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-        }
-
-        textarea.form-control {
-            min-height: 120px;
-        }
-
-        /* =========================
-           BUTTONS
-        ========================= */
-
-        .btn {
-            border-radius: 7px;
-            font-weight: 500;
-        }
-
-        .btn-primary {
-            background: #2563eb;
-            border-color: #2563eb;
-        }
-
-        .btn-primary:hover {
-            background: #1d4ed8;
-            border-color: #1d4ed8;
-        }
-
-        /* =========================
+        /* ============================
            BADGES
-        ========================= */
+        ============================ */
 
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
+        .badge-soft-success { background: #d1fae5; color: #047857; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .badge-soft-secondary { background: #e2e8f0; color: #475569; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .badge-soft-primary { background: #eef2ff; color: #4f46e5; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+
+        /* ============================
+           FILTER BAR
+        ============================ */
+
+        .filter-bar {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
         }
 
-        .action-buttons {
-            white-space: nowrap;
+        .filter-bar .form-control,
+        .filter-bar .form-select {
+            border-radius: 8px;
+            font-size: 14px;
         }
 
-        /* =========================
-           SEARCH
-        ========================= */
+        /* ============================
+           EMPTY STATE
+        ============================ */
 
-        .search-box {
-            width: 600px;
-            max-width: 100%;
+        .empty-state {
+            text-align: center;
+            padding: 70px 20px;
         }
 
-        /* =========================
-           ALERTS
-        ========================= */
-
-        .alert {
-            border: none;
-            border-radius: 9px;
+        .empty-state-icon {
+            font-size: 60px;
+            color: #cbd5e1;
+            margin-bottom: 20px;
         }
 
-        /* =========================
+        /* ============================
            RESPONSIVE
-        ========================= */
+        ============================ */
 
-        @media (max-width: 767px) {
+        .mobile-toggle {
+            display: none;
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 18px;
+            color: #0f172a;
+        }
 
-            .sidebar {
-                min-height: auto;
+        @media (max-width: 991px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
             }
-
-            .top-header {
-                height: auto;
-                padding: 15px;
-            }
-
-            .main-content {
-                padding: 15px;
-            }
-
-            .page-header {
-                padding: 17px;
-            }
-
-            .page-title {
-                font-size: 20px;
-            }
-
-            .welcome-text {
-                display: none;
-            }
-
-            .search-box {
-                width: 100%;
-            }
-
+            .admin-sidebar.open { transform: translateX(0); }
+            .admin-main { margin-left: 0; }
+            .admin-topbar { padding: 14px 20px; }
+            .admin-content { padding: 20px; }
+            .mobile-toggle { display: inline-flex; }
         }
 
     </style>
@@ -402,51 +384,44 @@ if (session_status() === PHP_SESSION_NONE) {
 
 <body>
 
-<div class="container-fluid">
+<div class="admin-layout">
 
-    <div class="row">
+    <?php include __DIR__ . "/sidebar.php"; ?>
 
-        <?php include "sidebar.php"; ?>
+    <main class="admin-main">
 
-        <div class="col px-0">
+        <div class="admin-topbar">
 
-            <!-- TOP HEADER -->
+            <div class="d-flex align-items-center gap-3">
 
-            <div class="top-header">
+                <button class="mobile-toggle" id="sidebarToggle" type="button">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
 
-                <div class="d-flex justify-content-between align-items-center">
+                <h1 class="page-heading">
+                    <?php echo htmlspecialchars($pageHeading); ?>
+                    <?php if ($pageSubheading !== ""): ?>
+                        <small><?php echo htmlspecialchars($pageSubheading); ?></small>
+                    <?php endif; ?>
+                </h1>
 
-                    <div class="d-flex align-items-center gap-2">
+            </div>
 
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            id="sidebarToggle">
+            <div class="admin-user">
 
-                            <i class="fa-solid fa-bars"></i>
+                <div class="avatar"><?php echo $adminInitial; ?></div>
 
-                        </button>
-
-                        <h5 class="mb-0">
-                            Admin Panel
-                        </h5>
-
+                <div>
+                    <div class="fw-semibold" style="font-size:13px;">
+                        <?php echo htmlspecialchars($adminName); ?>
                     </div>
-
-                    <div class="welcome-text">
-
-                        Welcome,
-
-                        <strong>
-                            <?= htmlspecialchars($_SESSION['admin_name'] ?? 'Admin') ?>
-                        </strong>
-
+                    <div style="font-size:11.5px;color:#6b7280;">
+                        Administrator
                     </div>
-
                 </div>
 
             </div>
 
-            <!-- MAIN CONTENT START -->
+        </div>
 
-            <div class="main-content">
+        <div class="admin-content">

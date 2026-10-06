@@ -1,116 +1,79 @@
-<div class="col-md-3 col-lg-2 px-0 sidebar" id="adminSidebar">
+<?php
+/* =========================================================
+   ADMIN SIDEBAR
+========================================================= */
 
-    <a href="dashboard.php" class="brand">
+$currentPage = $currentPage ?? basename($_SERVER["PHP_SELF"]);
 
-        <i class="fa-solid fa-store me-2"></i>
+function navActive($file, $current) {
+    return $file === $current ? " active" : "";
+}
+?>
 
-        <span class="sidebar-text">
-            ShopAdmin
-        </span>
+<aside class="admin-sidebar" id="adminSidebar">
 
-    </a>
+    <div class="brand">
+        <i class="fa-solid fa-couch"></i> Furnishop
+    </div>
 
-    <hr>
+    <ul class="nav flex-column">
 
-    <a href="dashboard.php">
+        <li class="nav-item">
+            <a class="nav-link<?php echo navActive('dashboard.php', $currentPage); ?>" href="dashboard.php">
+                <i class="fa-solid fa-gauge-high"></i> Dashboard
+            </a>
+        </li>
 
-        <i class="fa-solid fa-gauge-high me-2"></i>
+        <li class="nav-section">Catalog</li>
 
-        <span class="sidebar-text">
-            Dashboard
-        </span>
+        <li class="nav-item">
+            <a class="nav-link<?php echo navActive('categories.php', $currentPage); ?>" href="categories.php">
+                <i class="fa-solid fa-layer-group"></i> Categories
+            </a>
+        </li>
 
-    </a>
+        <li class="nav-item">
+            <a class="nav-link<?php echo navActive('products.php', $currentPage); ?>" href="products.php">
+                <i class="fa-solid fa-box"></i> Products
+            </a>
+        </li>
 
+        <li class="nav-item">
+            <a class="nav-link<?php echo navActive('stock.php', $currentPage); ?>" href="stock.php">
+                <i class="fa-solid fa-warehouse"></i> Stock
+            </a>
+        </li>
 
-    <a href="categories.php">
+        <li class="nav-section">Sales</li>
 
-        <i class="fa-solid fa-layer-group me-2"></i>
+        <li class="nav-item">
+            <a class="nav-link<?php echo navActive('orders.php', $currentPage); ?>" href="orders.php">
+                <i class="fa-solid fa-receipt"></i> Orders
+            </a>
+        </li>
 
-        <span class="sidebar-text">
-            Categories
-        </span>
+        <li class="nav-section">Users</li>
 
-    </a>
+        <li class="nav-item">
+            <a class="nav-link<?php echo navActive('users.php', $currentPage); ?>" href="users.php">
+                <i class="fa-solid fa-users"></i> Customers
+            </a>
+        </li>
 
+        <li class="nav-item">
+            <a class="nav-link<?php echo navActive('profile.php', $currentPage); ?>" href="profile.php">
+                <i class="fa-solid fa-user-gear"></i> My Profile
+            </a>
+        </li>
 
-    <a href="products.php">
+        <li class="nav-section">&nbsp;</li>
 
-        <i class="fa-solid fa-box-open me-2"></i>
+        <li class="nav-item">
+            <a class="nav-link" href="logout.php">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+        </li>
 
-        <span class="sidebar-text">
-            Products
-        </span>
+    </ul>
 
-    </a>
-
-
-    <a href="product-add.php">
-
-        <i class="fa-solid fa-circle-plus me-2"></i>
-
-        <span class="sidebar-text">
-            Add New Product
-        </span>
-
-    </a>
-
-
-    <a href="stock.php">
-
-        <i class="fa-solid fa-boxes-stacked me-2"></i>
-
-        <span class="sidebar-text">
-            Stock Management
-        </span>
-
-    </a>
-
-
-    <a href="orders.php">
-
-        <i class="fa-solid fa-cart-shopping me-2"></i>
-
-        <span class="sidebar-text">
-            Orders
-        </span>
-
-    </a>
-
-
-    <a href="users.php">
-
-        <i class="fa-solid fa-users me-2"></i>
-
-        <span class="sidebar-text">
-            Users
-        </span>
-
-    </a>
-
-
-    <a href="profile.php">
-
-        <i class="fa-solid fa-user-gear me-2"></i>
-
-        <span class="sidebar-text">
-            Profile
-        </span>
-
-    </a>
-
-
-    <hr>
-
-
-    <a href="logout.php" class="text-danger">
-
-        <i class="fa-solid fa-right-from-bracket me-2"></i>
-
-        <span class="sidebar-text">
-            Logout
-        </span>
-
-    </a>
-
-</div>
+</aside>

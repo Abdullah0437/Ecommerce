@@ -1,37 +1,41 @@
-            </div>
+<?php
+/* =========================================================
+   ADMIN FOOTER
+========================================================= */
+?>
 
-            <!-- MAIN CONTENT END -->
+        </div><!-- /.admin-content -->
 
-        </div>
+    </main>
 
-    </div>
-
-</div>
+</div><!-- /.admin-layout -->
 
 
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    (function () {
+        var toggle  = document.getElementById("sidebarToggle");
+        var sidebar = document.getElementById("adminSidebar");
 
-    const sidebarToggle = document.getElementById("sidebarToggle");
+        if (toggle && sidebar) {
+            toggle.addEventListener("click", function (e) {
+                e.stopPropagation();
+                sidebar.classList.toggle("open");
+            });
 
-    const adminSidebar = document.getElementById("adminSidebar");
-
-    if (sidebarToggle && adminSidebar) {
-
-        sidebarToggle.addEventListener("click", function () {
-
-            adminSidebar.classList.toggle("collapsed");
-
-        });
-
-    }
-
+            document.addEventListener("click", function (e) {
+                if (
+                    sidebar.classList.contains("open") &&
+                    !sidebar.contains(e.target) &&
+                    e.target !== toggle
+                ) {
+                    sidebar.classList.remove("open");
+                }
+            });
+        }
+    })();
 </script>
 
 </body>
-
 </html>

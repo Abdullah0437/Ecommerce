@@ -1,72 +1,62 @@
 <?php
 
-session_start();
+/* =========================================================
+   ADMIN - EDIT PRODUCT
+   Furnishop Admin Panel
+========================================================= */
 
-$host = "localhost";
-$username = "root";
-$password = "";
-$database = "ecommerce";
+require_once __DIR__ . "/../Includes/auth.php";
 
-$connect = mysqli_connect(
-    $host,
-    $username,
-    $password,
-    $database
-);
-
-if (!$connect) {
-    die("Database Connection Failed: " . mysqli_connect_error());
+if (!isset($connect)) {
+    $host = "localhost"; $username = "root"; $password = ""; $database = "ecommerce";
+    $connect = mysqli_connect($host, $username, $password, $database);
+    if (!$connect) die("Database Connection Failed: " . mysqli_connect_error());
 }
 
 
-/* =========================
-   ADMIN AUTHENTICATION
-========================= */
+/* =========================================================
+   CSRF
+========================================================= */
 
-if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
-    exit;
+if (empty($_SESSION["admin_csrf"])) {
+    $_SESSION["admin_csrf"] = bin2hex(random_bytes(32));
+}
+$csrf = $_SESSION["admin_csrf"];
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function e($v) {
+    return htmlspecialchars((string) $v, ENT_QUOTES, "UTF-8");
 }
 
 
-/* =========================
+/* =========================================================
    CHECK PRODUCT ID
-========================= */
+========================================================= */
 
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+if (!isset($_GET["id"]) || !is_numeric($_GET["id"])) {
     header("Location: products.php");
     exit;
 }
 
-$product_id = (int)$_GET['id'];
+$productId = (int) $_GET["id"];
 
 
-/* =========================
+/* =========================================================
    FETCH PRODUCT
-========================= */
+========================================================= */
 
-$query = "
-    SELECT *
-    FROM products
-    WHERE id = ?
-";
+$product = null;
 
-$stmt = mysqli_prepare(
-    $connect,
-    $query
-);
-
-mysqli_stmt_bind_param(
-    $stmt,
-    "i",
-    $product_id
-);
-
+$stmt = mysqli_prepare($connect, "SELECT * FROM products WHERE id = ? LIMIT 1");
+mysqli_stmt_bind_param($stmt, "i", $productId);
 mysqli_stmt_execute($stmt);
-
-$result = mysqli_stmt_get_result($stmt);
-
-$product = mysqli_fetch_assoc($result);
+$res = mysqli_stmt_get_result($stmt);
+$product = $res ? mysqli_fetch_assoc($res) : null;
+mysqli_stmt_close($stmt);
 
 if (!$product) {
     header("Location: products.php");
@@ -74,773 +64,541 @@ if (!$product) {
 }
 
 
-/* =========================
+/* =========================================================
    FETCH CATEGORIES
-========================= */
+========================================================= */
 
-$categoryQuery = "
-    SELECT id, name
-    FROM categories
-    ORDER BY name ASC
-";
+$categories = [];
 
-$categoryResult = mysqli_query(
-    $connect,
-    $categoryQuery
-);
-
-
-/* =========================
-   ERROR VARIABLES
-========================= */
-
-$nameErr = "";
-$categoryErr = "";
-$priceErr = "";
-$stockErr = "";
-$imageErr = "";
-
-
-/* =========================
-   UPDATE PRODUCT
-========================= */
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-
-    $name = trim($_POST['name'] ?? "");
-    $category_id = $_POST['category_id'] ?? "";
-    $description = trim($_POST['description'] ?? "");
-    $price = $_POST['price'] ?? "";
-    $stock = $_POST['stock_quantity'] ?? "";
-    $status = $_POST['status'] ?? "";
-
-
-    /* PRODUCT NAME */
-
-    if ($name == "") {
-
-        $nameErr = "Product name is required.";
-
-    }
-
-
-    /* CATEGORY */
-
-    if (
-        $category_id == "" ||
-        !is_numeric($category_id)
-    ) {
-
-        $categoryErr = "Category is required.";
-
-    }
-
-
-    /* PRICE */
-
-    if ($price == "") {
-
-        $priceErr = "Price is required.";
-
-    } elseif (
-        !is_numeric($price) ||
-        $price <= 0
-    ) {
-
-        $priceErr = "Enter a valid price.";
-
-    }
-
-
-    /* STOCK */
-
-    if ($stock == "") {
-
-        $stockErr = "Stock is required.";
-
-    } elseif (
-        !is_numeric($stock) ||
-        $stock < 0
-    ) {
-
-        $stockErr =
-            "Stock must be a whole number and cannot be negative.";
-
-    }
-
-
-    /* IMAGE */
-
-    $image = $product['image'];
-
-    if (
-        isset($_FILES['image']) &&
-        $_FILES['image']['error'] != 4
-    ) {
-
-        if ($_FILES['image']['error'] != 0) {
-
-            $imageErr = "Image upload failed.";
-
-        } else {
-
-            $imageSize = $_FILES['image']['size'];
-            $imageTmp = $_FILES['image']['tmp_name'];
-
-
-            if ($imageSize > 500000) {
-
-                $imageErr =
-                    "Image size must be less than 500KB.";
-
-            } elseif (
-                getimagesize($imageTmp) === false
-            ) {
-
-                $imageErr =
-                    "Please select a valid image.";
-
-            } else {
-
-                $imageType =
-                    mime_content_type($imageTmp);
-
-
-                if (
-                    $imageType != "image/jpeg" &&
-                    $imageType != "image/png"
-                ) {
-
-                    $imageErr =
-                        "Only JPG and PNG images are allowed.";
-
-                } else {
-
-                    if ($imageType == "image/jpeg") {
-
-                        $extension = "jpg";
-
-                    } else {
-
-                        $extension = "png";
-
-                    }
-
-                    $image =
-                        uniqid() . "." . $extension;
-                }
-            }
-        }
-    }
-
-
-    /* =========================
-       VALIDATION COMPLETE
-    ========================= */
-
-    if (
-        $nameErr == "" &&
-        $categoryErr == "" &&
-        $priceErr == "" &&
-        $stockErr == "" &&
-        $imageErr == ""
-    ) {
-
-
-        /* UPLOAD NEW IMAGE */
-
-        if ($image != $product['image']) {
-
-            $imageFolder = "../Images/";
-
-            if (!move_uploaded_file(
-                $_FILES['image']['tmp_name'],
-                $imageFolder . $image
-            )) {
-
-                $imageErr =
-                    "Image could not be uploaded.";
-
-            }
-
-        }
-
-
-        /* UPDATE DATABASE */
-
-        if ($imageErr == "") {
-
-            $update = "
-                UPDATE products
-                SET
-                    category_id = ?,
-                    NAME = ?,
-                    description = ?,
-                    price = ?,
-                    stock_quantity = ?,
-                    image = ?,
-                    STATUS = ?
-                WHERE id = ?
-            ";
-
-
-            $updateStmt = mysqli_prepare(
-                $connect,
-                $update
-            );
-
-
-            mysqli_stmt_bind_param(
-                $updateStmt,
-                "issdissi",
-                $category_id,
-                $name,
-                $description,
-                $price,
-                $stock,
-                $image,
-                $status,
-                $product_id
-            );
-
-
-            if (mysqli_stmt_execute($updateStmt)) {
-
-
-                /* DELETE OLD IMAGE */
-
-                if (
-                    $image != $product['image'] &&
-                    !empty($product['image'])
-                ) {
-
-                    $oldImage =
-                        "../Images/" .
-                        $product['image'];
-
-                    if (file_exists($oldImage)) {
-
-                        unlink($oldImage);
-
-                    }
-
-                }
-
-
-                header(
-                    "Location: products.php?message=product_updated"
-                );
-
-                exit;
-
-            }
-
-        }
-
-    }
-
+$cres = mysqli_query($connect, "SELECT id, name FROM categories ORDER BY name ASC");
+if ($cres) {
+    while ($c = mysqli_fetch_assoc($cres)) $categories[] = $c;
 }
 
 
-include "includes/header.php";
+/* =========================================================
+   VARIABLES
+   NOTE: your products table uses uppercase NAME / STATUS columns
+========================================================= */
 
+$errors = [
+    "name"           => "",
+    "category_id"    => "",
+    "price"          => "",
+    "stock_quantity" => "",
+    "image"          => "",
+    "status"         => "",
+];
+
+$name          = $product["NAME"]      ?? "";
+$categoryId    = $product["category_id"] ?? "";
+$description   = $product["description"] ?? "";
+$price         = $product["price"]        ?? "";
+$stockQuantity = $product["stock_quantity"] ?? "";
+$status        = $product["STATUS"]     ?? "Active";
+
+
+/* =========================================================
+   HANDLE SUBMIT
+========================================================= */
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    /* CSRF */
+    if (
+        empty($_POST["csrf_token"]) ||
+        !hash_equals($_SESSION["admin_csrf"], $_POST["csrf_token"])
+    ) {
+        $errors["name"] = "Invalid session. Please refresh and try again.";
+    }
+
+    $name          = trim($_POST["name"]           ?? "");
+    $categoryId    = trim($_POST["category_id"]    ?? "");
+    $description   = trim($_POST["description"]    ?? "");
+    $price         = trim($_POST["price"]          ?? "");
+    $stockQuantity = trim($_POST["stock_quantity"] ?? "");
+    $status        = trim($_POST["status"]         ?? "");
+
+    /* NAME */
+    if ($name === "") {
+        $errors["name"] = "Product name is required.";
+    } elseif (strlen($name) > 150) {
+        $errors["name"] = "Product name cannot exceed 150 characters.";
+    }
+
+    /* CATEGORY */
+    if ($categoryId === "" || !ctype_digit((string) $categoryId)) {
+        $errors["category_id"] = "Please select a valid category.";
+    } else {
+        $chk = mysqli_prepare($connect, "SELECT id FROM categories WHERE id = ? LIMIT 1");
+        mysqli_stmt_bind_param($chk, "i", $categoryId);
+        mysqli_stmt_execute($chk);
+        $chkRes = mysqli_stmt_get_result($chk);
+
+        if (!$chkRes || mysqli_num_rows($chkRes) !== 1) {
+            $errors["category_id"] = "Selected category does not exist.";
+        }
+        mysqli_stmt_close($chk);
+    }
+
+    /* PRICE */
+    if ($price === "") {
+        $errors["price"] = "Price is required.";
+    } elseif (!is_numeric($price) || (float) $price <= 0) {
+        $errors["price"] = "Enter a valid price greater than 0.";
+    }
+
+    /* STOCK */
+    if ($stockQuantity === "") {
+        $errors["stock_quantity"] = "Stock is required.";
+    } elseif (!ctype_digit($stockQuantity)) {
+        $errors["stock_quantity"] = "Stock must be a whole number.";
+    }
+
+    /* STATUS */
+    if (!in_array($status, ["Active", "Inactive"], true)) {
+        $errors["status"] = "Invalid status.";
+    }
+
+    /* IMAGE (optional) */
+    $newImageName = null;
+    $targetFile   = null;
+
+    $hasNewImage = isset($_FILES["image"]) && $_FILES["image"]["error"] !== UPLOAD_ERR_NO_FILE;
+
+    if ($hasNewImage) {
+
+        if ($_FILES["image"]["error"] !== UPLOAD_ERR_OK) {
+
+            $errors["image"] = "Image upload failed.";
+
+        } else {
+
+            $tmpName = $_FILES["image"]["tmp_name"];
+            $size    = $_FILES["image"]["size"];
+
+            $info = @getimagesize($tmpName);
+
+            if ($info === false) {
+                $errors["image"] = "Please select a valid image.";
+            } elseif ($size > 500 * 1024) {
+                $errors["image"] = "Image size must be less than 500 KB.";
+            } elseif (!in_array($info["mime"], ["image/jpeg", "image/png"], true)) {
+                $errors["image"] = "Only JPG and PNG images are allowed.";
+            } else {
+
+                $ext = ($info["mime"] === "image/jpeg") ? "jpg" : "png";
+                $newImageName = uniqid("product_", true) . "." . $ext;
+
+                /* DB stores just the filename */
+                $targetFile = __DIR__ . "/../Assets/Images/product/" . $newImageName;
+            }
+        }
+    }
+
+    /* INSERT */
+    $hasErrors = false;
+    foreach ($errors as $err) {
+        if ($err !== "") { $hasErrors = true; break; }
+    }
+
+    if (!$hasErrors) {
+
+        /* Upload new image first (if any) */
+        $uploadedNew = false;
+
+        if ($hasNewImage && $newImageName !== null && $targetFile !== null) {
+
+            if (!move_uploaded_file($_FILES["image"]["tmp_name"], $targetFile)) {
+                $errors["image"]  = "Image could not be uploaded.";
+                $hasErrors = true;
+            } else {
+                $uploadedNew = true;
+            }
+        }
+
+        if (!$hasErrors) {
+
+            /* Final image value */
+            $finalImage = $uploadedNew ? $newImageName : ($product["image"] ?? "");
+
+            /* NOTE: column names NAME and STATUS are uppercase in this DB */
+            $sql = "UPDATE products SET
+                        category_id    = ?,
+                        NAME           = ?,
+                        description    = ?,
+                        price          = ?,
+                        stock_quantity = ?,
+                        image          = ?,
+                        STATUS         = ?
+                    WHERE id = ?";
+
+            $upd = mysqli_prepare($connect, $sql);
+
+            if (!$upd) {
+                if ($uploadedNew && file_exists($targetFile)) unlink($targetFile);
+                $errors["name"] = "Something went wrong. Please try again.";
+            } else {
+
+                $categoryId    = (int)   $categoryId;
+                $price         = (float) $price;
+                $stockQuantity = (int)   $stockQuantity;
+
+                mysqli_stmt_bind_param(
+                    $upd,
+                    "issdissi",
+                    $categoryId,
+                    $name,
+                    $description,
+                    $price,
+                    $stockQuantity,
+                    $finalImage,
+                    $status,
+                    $productId
+                );
+
+                if (mysqli_stmt_execute($upd)) {
+
+                    /* Delete old image only if new one replaced it */
+                    if ($uploadedNew && !empty($product["image"])) {
+
+                        $oldPath = __DIR__ . "/../Assets/Images/product/" . $product["image"];
+
+                        if (
+                            file_exists($oldPath) &&
+                            $product["image"] !== $finalImage
+                        ) {
+                            unlink($oldPath);
+                        }
+                    }
+
+                    $_SESSION["flash_success"] = "Product updated successfully.";
+                    header("Location: products.php");
+                    exit;
+
+                } else {
+
+                    if ($uploadedNew && file_exists($targetFile)) unlink($targetFile);
+                    $errors["name"] = "Failed to update product.";
+                }
+
+                mysqli_stmt_close($upd);
+            }
+        }
+    }
+}
+
+
+/* =========================================================
+   PAGE META + HEADER
+========================================================= */
+
+$pageTitle      = "Edit Product";
+$pageHeading    = "Edit Product #" . $productId;
+$pageSubheading = "Update product information, price, stock and status";
+
+require_once __DIR__ . "/Includes/header.php";
 ?>
 
 
-<!-- =========================
-     PAGE HEADER
-========================= -->
+<!-- =========================================================
+     BACK BUTTON
+========================================================= -->
 
-<div class="page-header">
-
-    <div
-        class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-
-        <div>
-
-            <h2 class="page-title">
-
-                <i class="fa-solid fa-pen-to-square text-primary me-2"></i>
-
-                Edit Product
-
-            </h2>
-
-            <p class="text-muted mb-0 mt-2">
-
-                Update product information, price, stock and status.
-
-            </p>
-
-        </div>
-
-
-        <a
-            href="products.php"
-            class="btn btn-outline-secondary">
-
-            <i class="fa-solid fa-arrow-left me-1"></i>
-
-            Back to Products
-
-        </a>
-
-    </div>
-
+<div class="mb-4">
+    <a href="products.php" class="btn btn-outline-secondary">
+        <i class="fa-solid fa-arrow-left me-1"></i> Back to Products
+    </a>
 </div>
 
 
-<!-- =========================
-     EDIT CARD
-========================= -->
+<!-- =========================================================
+     FORM
+========================================================= -->
 
-<div class="card">
+<form method="post" enctype="multipart/form-data" novalidate>
 
-    <div class="card-body p-4 p-md-5">
+    <input type="hidden" name="csrf_token" value="<?php echo e($csrf); ?>">
 
+    <div class="panel">
 
-        <div class="mb-4">
-
-            <h5 class="fw-bold mb-1">
-
-                <i class="fa-solid fa-box-open text-primary me-2"></i>
-
+        <div class="panel-header">
+            <h3>
+                <i class="fa-solid fa-pen-to-square"></i>
                 Product Information
-
-            </h5>
-
-            <p class="text-muted mb-0">
-
-                Make changes to the product details below.
-
-            </p>
-
+            </h3>
         </div>
 
+        <div class="panel-body">
 
-        <form
-            method="POST"
-            enctype="multipart/form-data">
+            <h6 class="text-uppercase text-muted fw-bold mb-3"
+                style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                Basic Details
+            </h6>
 
+            <div class="row g-3">
 
-            <!-- PRODUCT NAME -->
-
-            <div class="mb-4">
-
-                <label class="form-label">
-
-                    Product Name
-
-                </label>
-
-                <input
-                    type="text"
-                    name="name"
-                    class="form-control"
-                    placeholder="Enter product name"
-                    value="<?= htmlspecialchars(
-                        $_POST['name'] ??
-                        $product['NAME']
-                    ) ?>">
-
-                <?php if ($nameErr != ""): ?>
-
-                    <div class="text-danger small mt-1">
-
-                        <i class="fa-solid fa-circle-exclamation me-1"></i>
-
-                        <?= htmlspecialchars($nameErr) ?>
-
-                    </div>
-
-                <?php endif; ?>
-
-            </div>
-
-
-            <!-- CATEGORY -->
-
-            <div class="mb-4">
-
-                <label class="form-label">
-
-                    Category
-
-                </label>
-
-                <select
-                    name="category_id"
-                    class="form-select">
-
-                    <option value="">
-
-                        Select Category
-
-                    </option>
-
-
-                    <?php while (
-                        $category =
-                        mysqli_fetch_assoc($categoryResult)
-                    ): ?>
-
-                        <option
-                            value="<?= $category['id'] ?>"
-                            <?= (
-                                (
-                                    $_POST['category_id'] ??
-                                    $product['category_id']
-                                ) == $category['id']
-                            )
-                                ? 'selected'
-                                : '' ?>>
-
-                            <?= htmlspecialchars(
-                                $category['name']
-                            ) ?>
-
-                        </option>
-
-                    <?php endwhile; ?>
-
-                </select>
-
-
-                <?php if ($categoryErr != ""): ?>
-
-                    <div class="text-danger small mt-1">
-
-                        <i class="fa-solid fa-circle-exclamation me-1"></i>
-
-                        <?= htmlspecialchars($categoryErr) ?>
-
-                    </div>
-
-                <?php endif; ?>
-
-            </div>
-
-
-            <!-- DESCRIPTION -->
-
-            <div class="mb-4">
-
-                <label class="form-label">
-
-                    Description
-
-                </label>
-
-                <textarea
-                    name="description"
-                    rows="5"
-                    class="form-control text-start"
-                    placeholder="Enter product description"><?= htmlspecialchars(
-                        $_POST['description'] ??
-                        $product['description']
-                    ) ?></textarea>
-
-            </div>
-
-
-            <!-- PRICE + STOCK -->
-
-            <div class="row">
-
-                <div class="col-md-6 mb-4">
-
-                    <label class="form-label">
-
-                        Price
-
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold" style="font-size:13px;">
+                        Product Name <span class="text-danger">*</span>
                     </label>
+                    <input
+                        type="text"
+                        name="name"
+                        class="form-control <?php echo $errors["name"] ? "is-invalid" : ""; ?>"
+                        placeholder="Enter product name"
+                        value="<?php echo e($name); ?>"
+                        required>
+                    <?php if ($errors["name"]): ?>
+                        <div class="invalid-feedback d-block">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i>
+                            <?php echo e($errors["name"]); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
 
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" style="font-size:13px;">
+                        Category <span class="text-danger">*</span>
+                    </label>
+                    <select
+                        name="category_id"
+                        class="form-select <?php echo $errors["category_id"] ? "is-invalid" : ""; ?>"
+                        required>
+                        <option value="">Select Category</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option
+                                value="<?php echo (int) $cat["id"]; ?>"
+                                <?php echo (string) $categoryId === (string) $cat["id"] ? "selected" : ""; ?>>
+                                <?php echo e($cat["name"]); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if ($errors["category_id"]): ?>
+                        <div class="invalid-feedback d-block">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i>
+                            <?php echo e($errors["category_id"]); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" style="font-size:13px;">
+                        Status <span class="text-danger">*</span>
+                    </label>
+                    <select
+                        name="status"
+                        class="form-select <?php echo $errors["status"] ? "is-invalid" : ""; ?>"
+                        required>
+                        <option value="Active"   <?php echo $status === "Active"   ? "selected" : ""; ?>>Active</option>
+                        <option value="Inactive" <?php echo $status === "Inactive" ? "selected" : ""; ?>>Inactive</option>
+                    </select>
+                    <?php if ($errors["status"]): ?>
+                        <div class="invalid-feedback d-block">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i>
+                            <?php echo e($errors["status"]); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold" style="font-size:13px;">
+                        Description
+                    </label>
+                    <textarea
+                        name="description"
+                        class="form-control"
+                        rows="5"
+                        placeholder="Describe the product features, specifications, etc."><?php echo e($description); ?></textarea>
+                </div>
+
+            </div>
+
+            <hr class="my-4">
+
+            <h6 class="text-uppercase text-muted fw-bold mb-3"
+                style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                Pricing &amp; Stock
+            </h6>
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" style="font-size:13px;">
+                        Price <span class="text-danger">*</span>
+                    </label>
                     <div class="input-group">
-
-                        <span class="input-group-text">
-
-                            Rs.
-
-                        </span>
-
+                        <span class="input-group-text">Rs.</span>
                         <input
                             type="number"
                             name="price"
                             step="0.01"
                             min="0"
-                            class="form-control"
-                            value="<?= htmlspecialchars(
-                                $_POST['price'] ??
-                                $product['price']
-                            ) ?>">
-
+                            class="form-control <?php echo $errors["price"] ? "is-invalid" : ""; ?>"
+                            value="<?php echo e($price); ?>"
+                            required>
                     </div>
-
-
-                    <?php if ($priceErr != ""): ?>
-
-                        <div class="text-danger small mt-1">
-
+                    <?php if ($errors["price"]): ?>
+                        <div class="invalid-feedback d-block">
                             <i class="fa-solid fa-circle-exclamation me-1"></i>
-
-                            <?= htmlspecialchars($priceErr) ?>
-
+                            <?php echo e($errors["price"]); ?>
                         </div>
-
                     <?php endif; ?>
-
                 </div>
 
-
-                <div class="col-md-6 mb-4">
-
-                    <label class="form-label">
-
-                        Stock Quantity
-
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" style="font-size:13px;">
+                        Stock Quantity <span class="text-danger">*</span>
                     </label>
-
                     <input
                         type="number"
                         name="stock_quantity"
                         min="0"
-                        class="form-control"
-                        value="<?= htmlspecialchars(
-                            $_POST['stock_quantity'] ??
-                            $product['stock_quantity']
-                        ) ?>">
-
-                    <?php if ($stockErr != ""): ?>
-
-                        <div class="text-danger small mt-1">
-
+                        step="1"
+                        class="form-control <?php echo $errors["stock_quantity"] ? "is-invalid" : ""; ?>"
+                        value="<?php echo e($stockQuantity); ?>"
+                        required>
+                    <?php if ($errors["stock_quantity"]): ?>
+                        <div class="invalid-feedback d-block">
                             <i class="fa-solid fa-circle-exclamation me-1"></i>
-
-                            <?= htmlspecialchars($stockErr) ?>
-
+                            <?php echo e($errors["stock_quantity"]); ?>
                         </div>
-
                     <?php endif; ?>
-
                 </div>
 
             </div>
 
+            <hr class="my-4">
 
-            <!-- CURRENT IMAGE -->
+            <h6 class="text-uppercase text-muted fw-bold mb-3"
+                style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                Product Image
+            </h6>
 
-            <div class="mb-4">
+            <div class="row g-3">
 
-                <label class="form-label">
+                <div class="col-md-6">
 
-                    Current Image
+                    <label class="form-label fw-semibold" style="font-size:13px;">
+                        Current Image
+                    </label>
 
-                </label>
+                    <div class="d-flex align-items-center gap-3 p-3"
+                         style="border:1px solid #e9eef5;border-radius:12px;background:#f8fafc;">
 
+                        <?php
+                        $currentImageFile = __DIR__ . "/../Assets/Images/product/" . ($product["image"] ?? "");
+                        $currentImageUrl  = "../Assets/Images/product/" . rawurlencode(basename((string) ($product["image"] ?? "")));
 
-                <div
-                    class="border rounded-3 p-3 d-flex align-items-center gap-3">
-
-                    <?php
-
-                    $imagePath =
-                        "../Images/" .
-                        $product['image'];
-
-                    ?>
-
-
-                    <?php if (
-                        !empty($product['image']) &&
-                        file_exists($imagePath)
-                    ): ?>
-
-                        <img
-                            src="<?= htmlspecialchars(
-                                $imagePath
-                            ) ?>"
-                            alt="Product Image"
-                            class="product-image">
-
-
-                        <div>
-
-                            <div class="fw-semibold">
-
-                                Current Product Image
-
+                        if (!empty($product["image"]) && file_exists($currentImageFile)):
+                        ?>
+                            <img
+                                src="<?php echo e($currentImageUrl); ?>"
+                                alt="Product Image"
+                                style="width:76px;height:76px;border-radius:12px;object-fit:cover;border:1px solid #e9eef5;background:#fff;flex-shrink:0;">
+                            <div>
+                                <div class="fw-semibold" style="font-size:13px;">
+                                    Current Image
+                                </div>
+                                <small class="text-muted">
+                                    Upload a new image below to replace it.
+                                </small>
                             </div>
-
-                            <small class="text-muted">
-
-                                Upload a new image below to replace it.
-
-                            </small>
-
-                        </div>
-
-
-                    <?php else: ?>
-
-                        <div class="no-image">
-
-                            <i class="fa-solid fa-image"></i>
-
-                        </div>
-
-
-                        <div>
-
-                            <div class="fw-semibold">
-
-                                No Image
-
+                        <?php else: ?>
+                            <div style="width:76px;height:76px;border-radius:12px;background:#fff;border:1px dashed #cbd5e1;display:flex;align-items:center;justify-content:center;color:#94a3b8;flex-shrink:0;">
+                                <i class="fa-solid fa-image fa-lg"></i>
                             </div>
-
-                            <small class="text-muted">
-
-                                This product does not have an image.
-
-                            </small>
-
-                        </div>
-
-                    <?php endif; ?>
-
-                </div>
-
-            </div>
-
-
-            <!-- CHANGE IMAGE -->
-
-            <div class="mb-4">
-
-                <label class="form-label">
-
-                    Change Image
-
-                </label>
-
-                <input
-                    type="file"
-                    name="image"
-                    class="form-control"
-                    accept=".jpg,.jpeg,.png">
-
-
-                <div class="form-text">
-
-                    JPG or PNG only. Maximum size: 500KB.
-
-                </div>
-
-
-                <?php if ($imageErr != ""): ?>
-
-                    <div class="text-danger small mt-1">
-
-                        <i class="fa-solid fa-circle-exclamation me-1"></i>
-
-                        <?= htmlspecialchars($imageErr) ?>
+                            <div>
+                                <div class="fw-semibold" style="font-size:13px;">
+                                    No Image
+                                </div>
+                                <small class="text-muted">
+                                    Upload an image below.
+                                </small>
+                            </div>
+                        <?php endif; ?>
 
                     </div>
 
-                <?php endif; ?>
+                </div>
+
+                <div class="col-md-6">
+
+                    <label class="form-label fw-semibold" style="font-size:13px;">
+                        Replace Image (optional)
+                    </label>
+
+                    <input
+                        type="file"
+                        name="image"
+                        id="image"
+                        class="form-control <?php echo $errors["image"] ? "is-invalid" : ""; ?>"
+                        accept=".jpg,.jpeg,.png">
+
+                    <small class="text-muted d-block mt-2">
+                        JPG or PNG only. Maximum size: 500 KB.
+                    </small>
+
+                    <?php if ($errors["image"]): ?>
+                        <div class="invalid-feedback d-block">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i>
+                            <?php echo e($errors["image"]); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <img
+                        src=""
+                        alt="New preview"
+                        id="preview"
+                        class="d-none mt-3"
+                        style="width:76px;height:76px;border-radius:12px;object-fit:cover;border:1px solid #e9eef5;background:#fff;">
+
+                </div>
 
             </div>
 
+        </div>
 
-            <!-- STATUS -->
+        <div class="panel-header" style="border-top:1px solid #f1f5f9;border-bottom:none;background:#f8fafc;justify-content:flex-end;">
 
-            <div class="mb-4">
+            <a href="products.php" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-xmark me-1"></i> Cancel
+            </a>
 
-                <label class="form-label">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Update Product
+            </button>
 
-                    Status
-
-                </label>
-
-                <select
-                    name="status"
-                    class="form-select">
-
-                    <option
-                        value="Active"
-                        <?= (
-                            (
-                                $_POST['status'] ??
-                                $product['STATUS']
-                            ) == "Active"
-                        )
-                            ? "selected"
-                            : "" ?>>
-
-                        Active
-
-                    </option>
-
-
-                    <option
-                        value="Inactive"
-                        <?= (
-                            (
-                                $_POST['status'] ??
-                                $product['STATUS']
-                            ) == "Inactive"
-                        )
-                            ? "selected"
-                            : "" ?>>
-
-                        Inactive
-
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <!-- BUTTONS -->
-
-            <div
-                class="border-top pt-4 d-flex justify-content-end gap-2 flex-wrap">
-
-                <a
-                    href="products.php"
-                    class="btn btn-outline-secondary">
-
-                    <i class="fa-solid fa-xmark me-1"></i>
-
-                    Cancel
-
-                </a>
-
-
-                <button
-                    type="submit"
-                    class="btn btn-primary">
-
-                    <i class="fa-solid fa-floppy-disk me-1"></i>
-
-                    Update Product
-
-                </button>
-
-            </div>
-
-
-        </form>
+        </div>
 
     </div>
 
-</div>
+</form>
 
 
-<?php
+<script>
+    /* Live preview of the newly chosen image */
+    (function () {
+        var input   = document.getElementById("image");
+        var preview = document.getElementById("preview");
 
-include "includes/footer.php";
+        if (!input || !preview) return;
 
-mysqli_close($connect);
+        input.addEventListener("change", function () {
+            var file = this.files && this.files[0];
+            if (!file) {
+                preview.classList.add("d-none");
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function (ev) {
+                preview.src = ev.target.result;
+                preview.classList.remove("d-none");
+            };
+            reader.readAsDataURL(file);
+        });
+    })();
+</script>
 
-?>
+
+<?php require_once __DIR__ . "/Includes/footer.php"; ?>

@@ -495,10 +495,10 @@ foreach ($_SESSION["cart"] as $quantity) {
 function productImage($image)
 {
     if (empty($image)) {
-        return "../assets/images/product/1.png";
+        return "../Assets/Images/product/1.png";
     }
 
-    return "../Images/" .
+    return "../Assets/Images/product/" .
         rawurlencode(
             basename($image)
         );
@@ -527,43 +527,39 @@ function productImage($image)
     <link
         rel="icon"
         type="image/x-icon"
-        href="../assets/images/favicon.ico">
+        href="../Assets/Images/favicon.ico">
 
     <link
         rel="stylesheet"
-        href="../assets/css/bootstrap.min.css">
+        href="../Assets/CSS/bootstrap.min.css">
 
     <link
         rel="stylesheet"
-        href="../assets/font/bootstrap-icons-1.11.3/font/bootstrap-icons.min.css">
+        href="../Assets/Font/bootstrap-icons-1.11.3/font/bootstrap-icons.min.css">
 
     <link
         rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+        href="../Assets/Plugin/nice-select/nice-select.css">
 
     <link
         rel="stylesheet"
-        href="../assets/plugin/nice-select/nice-select.css">
+        href="../Assets/Plugin/OwlCarousel2-2.3.4/dist/assets/owl.carousel.min.css">
 
     <link
         rel="stylesheet"
-        href="../assets/plugin/OwlCarousel2-2.3.4/dist/assets/owl.carousel.min.css">
+        href="../Assets/Plugin/OwlCarousel2-2.3.4/dist/assets/owl.theme.default.min.css">
 
     <link
         rel="stylesheet"
-        href="../assets/plugin/OwlCarousel2-2.3.4/dist/assets/owl.theme.default.min.css">
+        href="../Assets/Plugin/nouislider/nouislider.min.css">
 
     <link
         rel="stylesheet"
-        href="../assets/plugin/nouislider/nouislider.min.css">
+        href="../Assets/Plugin/slick/slick.css">
 
     <link
         rel="stylesheet"
-        href="../assets/plugin/slick/slick.css">
-
-    <link
-        rel="stylesheet"
-        href="../assets/css/style.css">
+        href="../Assets/CSS/style.css">
 
     <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
@@ -643,25 +639,6 @@ function productImage($image)
 
 
         /* =====================================================
-           BREADCRUMB
-        ===================================================== */
-
-        .breadcrumb-item+.breadcrumb-item::before {
-            content: ">";
-            padding-right: 8px;
-            padding-left: 8px;
-        }
-
-        .breadcrumb-item a {
-            text-decoration: none;
-        }
-
-        .breadcrumb-item.active {
-            color: #6c757d;
-        }
-
-
-        /* =====================================================
            MOBILE
         ===================================================== */
 
@@ -714,7 +691,7 @@ function productImage($image)
                                 href="index.php">
 
                                 <img
-                                    src="../assets/images/logo.png"
+                                    src="../Assets/Images/logo.png"
                                     class="logo main-logo"
                                     alt="Furnishop">
 
@@ -761,25 +738,6 @@ function productImage($image)
 
                                             <span class="d-none d-md-block">
                                                 Account
-                                            </span>
-
-                                        </a>
-
-                                    </div>
-
-
-                                    <!-- WISHLIST -->
-
-                                    <div class="list-inline-item me-3">
-
-                                        <a
-                                            href="#"
-                                            class="text-muted d-flex flex-column justify-content-center align-items-center">
-
-                                            <i class="bi bi-heart"></i>
-
-                                            <span class="d-none d-md-block">
-                                                Wishlist
                                             </span>
 
                                         </a>
@@ -850,7 +808,7 @@ function productImage($image)
                                     <a href="index.php">
 
                                         <img
-                                            src="../assets/images/logo.png"
+                                            src="../Assets/Images/logo.png"
                                             alt="Furnishop">
 
                                     </a>
@@ -976,18 +934,6 @@ function productImage($image)
                                                 class="nav-item dropdown w-100 w-lg-auto">
 
                                                 <a
-                                                    class="nav-link"
-                                                    href="#">
-                                                    Pages
-                                                </a>
-
-                                            </li>
-
-
-                                            <li
-                                                class="nav-item dropdown w-100 w-lg-auto">
-
-                                                <a
                                                     class="nav-link dropdown-toggle"
                                                     href="#"
                                                     role="button"
@@ -1071,25 +1017,6 @@ function productImage($image)
 
                                 <span>
                                     Account
-                                </span>
-
-                            </a>
-
-                        </div>
-
-
-                        <!-- WISHLIST -->
-
-                        <div class="list-inline-item me-4">
-
-                            <a
-                                href="#"
-                                class="text-muted d-flex flex-column justify-content-center align-items-center">
-
-                                <i class="bi bi-heart"></i>
-
-                                <span>
-                                    Wishlist
                                 </span>
 
                             </a>
@@ -1315,7 +1242,7 @@ function productImage($image)
                                                                                 ) ?>"
                                                                         class="img-thumbnail cart-product-image"
                                                                         loading="lazy"
-                                                                        onerror="this.src='../assets/images/product/1.png';">
+                                                                        onerror="this.src='../Assets/Images/product/1.png';">
 
                                                                 </a>
 
@@ -1336,25 +1263,6 @@ function productImage($image)
                                                                     ) ?>
 
                                                                 </a>
-
-
-                                                                <?php if (!empty($product["description"])): ?>
-
-                                                                    <small
-                                                                        class="d-block text-muted mt-1">
-
-                                                                        <?= htmlspecialchars(
-                                                                            mb_strimwidth(
-                                                                                $product["description"],
-                                                                                0,
-                                                                                70,
-                                                                                "..."
-                                                                            )
-                                                                        ) ?>
-
-                                                                    </small>
-
-                                                                <?php endif; ?>
 
                                                             </td>
 
@@ -1423,15 +1331,6 @@ function productImage($image)
                                                                     </button>
 
                                                                 </div>
-
-
-                                                                <small
-                                                                    class="text-muted d-block mt-2">
-
-                                                                    Stock:
-                                                                    <?= (int)$product["stock_quantity"] ?>
-
-                                                                </small>
 
 
                                                                 <!-- REMOVE -->
@@ -1703,7 +1602,7 @@ function productImage($image)
 
                                 <img
                                     loading="lazy"
-                                    src="../assets/images/logo.png"
+                                    src="../Assets/Images/logo.png"
                                     class="logo"
                                     alt="Furnishop">
 
@@ -1712,21 +1611,16 @@ function productImage($image)
                             <div class="mt-4">
 
                                 <p>
-
-                                    Widgetify Inc, 456 Gadget Avenue,
-                                    <br>
-                                    Techtown, TX 67890,
-                                    <br>
-                                    United States of America
-
+                                    Furnishop provides quality furniture
+                                    and home products for every space.
                                 </p>
 
                                 <h3 class="h5 fw-bold">
-                                    (987) 654-3210
+                                    +92 300 1234567
                                 </h3>
 
                                 <p>
-                                    info@example.com
+                                    support@furnishop.com
                                 </p>
 
                             </div>
@@ -1756,27 +1650,45 @@ function productImage($image)
                                 <ul
                                     class="m-0 p-0 list-unstyled">
 
-                                    <li>
-                                        <a href="login.php">
-                                            Login
-                                        </a>
-                                    </li>
+                                    <?php if (!isset($_SESSION["user_id"])): ?>
+
+                                        <li>
+                                            <a href="login.php">
+                                                Login
+                                            </a>
+                                        </li>
+
+                                        <li>
+                                            <a href="register.php">
+                                                Register
+                                            </a>
+                                        </li>
+
+                                    <?php else: ?>
+
+                                        <li>
+                                            <a href="profile.php">
+                                                My Account
+                                            </a>
+                                        </li>
+
+                                        <li>
+                                            <a href="orders.php">
+                                                My Orders
+                                            </a>
+                                        </li>
+
+                                        <li>
+                                            <a href="logout.php">
+                                                Logout
+                                            </a>
+                                        </li>
+
+                                    <?php endif; ?>
 
                                     <li>
-                                        <a href="#">
-                                            Wishlist
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="#">
-                                            Track Order
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="profile.php">
-                                            Manage Account
+                                        <a href="cart.php">
+                                            Cart
                                         </a>
                                     </li>
 
@@ -1792,33 +1704,21 @@ function productImage($image)
                             <div class="footer_menu">
 
                                 <h4 class="footer_title">
-                                    Information
+                                    Shopping
                                 </h4>
 
                                 <ul
                                     class="m-0 p-0 list-unstyled">
 
                                     <li>
-                                        <a href="#">
-                                            About Us
+                                        <a href="products.php">
+                                            Products
                                         </a>
                                     </li>
 
                                     <li>
-                                        <a href="#">
-                                            Return Policy
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="#">
-                                            Privacy Policy
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="#">
-                                            FAQ
+                                        <a href="checkout.php">
+                                            Checkout
                                         </a>
                                     </li>
 
@@ -1851,26 +1751,14 @@ function productImage($image)
                                     class="m-0 p-0 list-unstyled">
 
                                     <li>
-                                        <a href="index.php">
-                                            Home
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="products.php">
-                                            Products
-                                        </a>
-                                    </li>
-
-                                    <li>
                                         <a href="cart.php">
-                                            Cart
+                                            Shopping Cart
                                         </a>
                                     </li>
 
                                     <li>
-                                        <a href="checkout.php">
-                                            Checkout
+                                        <a href="orders.php">
+                                            My Orders
                                         </a>
                                     </li>
 
@@ -1898,24 +1786,6 @@ function productImage($image)
                                         </a>
                                     </li>
 
-                                    <li>
-                                        <a href="products.php?sort=latest">
-                                            Latest
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="products.php?sort=low">
-                                            Low Price
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="products.php?sort=high">
-                                            High Price
-                                        </a>
-                                    </li>
-
                                 </ul>
 
                             </div>
@@ -1939,8 +1809,7 @@ function productImage($image)
             <span>
 
                 Copyright © <?= date("Y") ?>.
-                All Rights Reserved.
-                Themes By TemplateRise
+                All Rights Reserved. Furnishop.
 
             </span>
 
@@ -1953,19 +1822,19 @@ function productImage($image)
      JAVASCRIPT
 ========================================================= -->
 
-    <script src="../assets/js/jquery-3.6.0.min.js"></script>
+    <script src="../Assets/JS/jquery-3.6.0.min.js"></script>
 
-    <script src="../assets/js/bootstrap.bundle.min.js"></script>
+    <script src="../Assets/JS/bootstrap.bundle.min.js"></script>
 
-    <script src="../assets/plugin/nice-select/jquery.nice-select.min.js"></script>
+    <script src="../Assets/Plugin/nice-select/jquery.nice-select.min.js"></script>
 
-    <script src="../assets/plugin/OwlCarousel2-2.3.4/dist/owl.carousel.min.js"></script>
+    <script src="../Assets/Plugin/OwlCarousel2-2.3.4/dist/owl.carousel.min.js"></script>
 
-    <script src="../assets/plugin/nouislider/nouislider.min.js"></script>
+    <script src="../Assets/Plugin/nouislider/nouislider.min.js"></script>
 
-    <script src="../assets/plugin/slick/slick.min.js"></script>
+    <script src="../Assets/Plugin/slick/slick.min.js"></script>
 
-    <script src="../assets/js/main.js"></script>
+    <script src="../Assets/JS/main.js"></script>
 
 
 </body>
