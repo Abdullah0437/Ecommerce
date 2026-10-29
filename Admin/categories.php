@@ -8,7 +8,10 @@
 require_once __DIR__ . "/../Includes/auth.php";
 
 if (!isset($connect)) {
-    $host = "localhost"; $username = "root"; $password = ""; $database = "ecommerce";
+    $host = "localhost";
+    $username = "root";
+    $password = "";
+    $database = "ecommerce";
     $connect = mysqli_connect($host, $username, $password, $database);
     if (!$connect) die("Database Connection Failed: " . mysqli_connect_error());
 }
@@ -38,15 +41,18 @@ unset($_SESSION["flash_success"], $_SESSION["flash_error"]);
    HELPERS
 ========================================================= */
 
-function e($v) {
+function e($v)
+{
     return htmlspecialchars((string) $v, ENT_QUOTES, "UTF-8");
 }
 
-function normaliseStatus($status) {
+function normaliseStatus($status)
+{
     return ($status === "Active") ? "Active" : "Inactive";
 }
 
-function checkCsrf() {
+function checkCsrf()
+{
     if (
         empty($_POST["csrf_token"]) ||
         empty($_SESSION["admin_csrf"]) ||
@@ -86,7 +92,6 @@ if (isset($_POST["add_category"])) {
         if (mysqli_stmt_num_rows($check) > 0) {
 
             $_SESSION["flash_error"] = "Category name already exists.";
-
         } else {
 
             $stmt = mysqli_prepare(
@@ -141,7 +146,6 @@ if (isset($_POST["update_category"])) {
     if (mysqli_stmt_num_rows($check) > 0) {
 
         $_SESSION["flash_error"] = "Another category with this name already exists.";
-
     } else {
 
         $stmt = mysqli_prepare(
@@ -261,7 +265,9 @@ if ($statsQ) {
     }
 }
 
-$where = []; $params = []; $types = "";
+$where = [];
+$params = [];
+$types = "";
 
 if ($filterStatus === "Active" || $filterStatus === "Inactive") {
     $where[]  = "status = ?";
